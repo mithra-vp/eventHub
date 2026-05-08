@@ -14,23 +14,56 @@ const reviewRoute = require("./routes/reviewRoute");
 
 const app = express();
 connect_db();
+const allowAllCors = (process.env.ALLOW_ALL_CORS || "").toLowerCase() === "true";
 
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:5175",
-    "https://event-hub-hjic.vercel.app",
-    "https://event-hub-hjic-git-master-mithra-vps-projects.vercel.app",
-    "https://event-hub-hjic-c3gnuhsmz-mithra-vps-projects.vercel.app"
-  ],
+const exactAllowedOrigins = new Set([
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "https://event-hub-hjic.vercel.app",
+]);
+
+const isAllowedOrigin = (origin) => {
+  if (allowAllCors) return true;
+  if (!origin) return true; // server-to-server / curl / postman
+  if (exactAllowedOrigins.has(origin)) return true;
+
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== "https:") return false;
+
+    // Allow all Vercel deployment URLs for this project:
+    // event-hub-hjic.vercel.app and event-hub-hjic-*.vercel.app
+    if (hostname === "event-hub-hjic.vercel.app") return true;
+    if (hostname.startsWith("event-hub-hjic-") && hostname.endsWith(".vercel.app")) return true;
+  } catch (_) {
+    return false;
+  }
+
+  return false;
+};
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin || "unknown"}`));
+  },
   credentials: true,
-}));
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+};
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get("/api", (req, res) => {
+  res.status(200).json({ 
+    message: "EventHub API is live and running!"
+  });
+});
 
 app.use('/api/auth', authRoute);
 app.use('/api/events', eventRoute);
