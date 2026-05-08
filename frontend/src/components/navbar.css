@@ -1,0 +1,246 @@
+.eh-nav {
+  position: fixed;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1300px, 92%);
+  height: 64px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-radius: 999px;
+  background-color: var(--eh-nav-active-bg);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--eh-nav-active-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.eh-nav.nav-scrolled {
+  top: 10px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+}
+
+.eh-nav--dashboard {
+  left: calc(50% + 140px);
+  width: min(1000px, calc(92% - 280px));
+}
+
+/* Logo */
+.eh-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-weight: 1000;
+  font-size: 20px;
+  letter-spacing: -0.6px;
+  color: var(--eh-text);
+  padding: 0 8px;
+}
+
+.eh-logo-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--eh-primary), var(--eh-accent));
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: white;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+
+.eh-logo-text span {
+  color: var(--eh-accent);
+}
+
+/* Links Wrapper */
+.eh-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.eh-link {
+  color: var(--eh-muted);
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.eh-link:hover {
+  color: var(--eh-text);
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.eh-link.active {
+  color: var(--eh-text);
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.eh-link-ic {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  opacity: 0.7;
+}
+
+/* Profile / Auth Area */
+.eh-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eh-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.04);
+  padding: 4px 6px;
+  padding-right: 14px;
+  border-radius: 999px;
+  border: 1px solid var(--eh-border);
+  text-decoration: none;
+  color: var(--eh-text);
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.eh-user-pill img {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--eh-surface);
+}
+
+.eh-user-init {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--eh-accent);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.eh-logout-btn {
+  background: none;
+  border: none;
+  color: var(--eh-muted);
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+
+.eh-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.06);
+  color: var(--eh-danger);
+}
+
+.eh-auth-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.eh-btn-nav {
+  text-decoration: none;
+  font-weight: 900;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+
+.eh-btn-login {
+  color: var(--eh-text);
+}
+
+.eh-btn-signup {
+  background: var(--eh-text);
+  color: white;
+}
+
+.eh-btn-signup:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Mobile Toggle */
+.eh-mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--eh-text);
+  padding: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.eh-mobile-toggle:active {
+  transform: scale(0.9);
+}
+
+@media (max-width: 920px) {
+  .eh-nav--dashboard {
+    left: 50%;
+    width: min(1300px, 92%);
+  }
+
+  .eh-links {
+    display: none;
+  }
+  .eh-mobile-toggle {
+    display: block;
+  }
+  .eh-desktop-only {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .eh-nav {
+    border-radius: 20px;
+    height: 56px;
+    top: 8px;
+  }
+  .eh-user-name, .eh-btn-login, .eh-btn-signup {
+    display: none;
+  }
+  .eh-nav-right {
+    gap: 5px;
+  }
+}
+/* Dark Mode Overrides */
+:root[data-theme="dark"] .eh-btn-login {
+  color: #fff;
+}
+
+:root[data-theme="dark"] .eh-btn-login:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .eh-btn-signup {
+  background: #fff;
+  color: #000;
+}
+
+:root[data-theme="dark"] .eh-btn-signup:hover {
+  background: #f8f9fa;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
+}

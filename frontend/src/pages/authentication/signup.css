@@ -1,0 +1,7 @@
+@import url('./login.css');
+
+/* Signup specific tweaks can be added here if needed */
+.auth-form {
+  /* Ensuring signup form is consistent with login */
+  animation-delay: 0.1s;
+}

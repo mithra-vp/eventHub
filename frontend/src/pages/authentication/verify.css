@@ -1,0 +1,52 @@
+.otp-container {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.otp-field {
+  width: 45px;
+  height: 55px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.otp-field:focus {
+  border-color: var(--eh-accent);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(232, 70, 144, 0.3);
+  transform: translateY(-2px);
+}
+
+.otp-field::selection {
+  background: var(--eh-accent);
+  color: white;
+}
+
+.linklike {
+  border: none;
+  background: transparent;
+  color: var(--eh-accent);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s;
+}
+
+.linklike:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.linklike:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

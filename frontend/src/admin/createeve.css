@@ -1,0 +1,108 @@
+.create-event-page {
+  min-height: 100vh;
+  background-color: var(--eh-bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 120px 20px 60px; /* Space for the transparent Navbar */
+}
+
+.form-card {
+  background: var(--eh-surface);
+  padding: 35px;
+  border-radius: 12px;
+  border: 1px solid var(--eh-border);
+  width: 100%;
+  max-width: 500px;
+  box-shadow: var(--eh-shadow);
+}
+
+.form-header h2 {
+  color: var(--eh-text);
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+.form-header p {
+  color: var(--eh-muted);
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+.input-group {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+label {
+  color: var(--eh-text);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+input, select, textarea {
+  background: var(--eh-surface-2);
+  border: 1px solid var(--eh-border);
+  color: var(--eh-text);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--eh-primary);
+  box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1);
+  outline: none;
+  background: var(--eh-surface);
+}
+
+.image-preview-container {
+  margin-top: 10px;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--eh-border);
+  background: var(--eh-surface-2);
+}
+
+.img-preview {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+
+.submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--eh-primary), var(--eh-accent));
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: 0.3s ease;
+}
+
+.submit-btn:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 0 15px rgba(249, 115, 22, 0.24);
+}
+
+@media (max-width: 520px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  .img-preview {
+    height: 140px;
+  }
+}
