@@ -21,7 +21,8 @@ app.use(cors({
     "http://localhost:5174",
     "http://localhost:5175",
     "https://event-hub-hjic.vercel.app",
-    "https://event-hub-hjic-git-master-mithra-vps-projects.vercel.app"
+    "https://event-hub-hjic-git-master-mithra-vps-projects.vercel.app",
+    "https://event-hub-hjic-c3gnuhsmz-mithra-vps-projects.vercel.app"
   ],
   credentials: true,
 }));
