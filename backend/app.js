@@ -16,7 +16,12 @@ const app = express();
 connect_db();
 
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"], // Added 5174 and 5175
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "https://event-hub-hjic.vercel.app"
+  ],
   credentials: true,
 }));
 
