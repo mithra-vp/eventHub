@@ -27,7 +27,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 // 3. ROUTES LAST (This uses the prepared data)
 
-app.get("/", (req, res) => {
+app.get("/api", (req, res) => {
   res.status(200).json({ 
     message: "EventHub API is live and running!"
   });
