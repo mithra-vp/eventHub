@@ -15,23 +15,15 @@ const reviewRoute = require("./routes/reviewRoute");
 const app = express();
 connect_db();
 
-// 1. CORS FIRST
 app.use(cors({
-  origin: ["http://localhost:5173"],
+  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"], // Added 5174 and 5175
   credentials: true,
 }));
 
-// 2. PARSERS SECOND (This prepares the data)
 app.use(cookieParser());
 app.use(express.json());
-app.use(express.urlencoded({extended: true}));
-// 3. ROUTES LAST (This uses the prepared data)
+app.use(express.urlencoded({ extended: true }));
 
-app.get("/api", (req, res) => {
-  res.status(200).json({ 
-    message: "EventHub API is live and running!"
-  });
-});
 
 app.use('/api/auth', authRoute);
 app.use('/api/events', eventRoute);
@@ -78,5 +70,5 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 8000;
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
