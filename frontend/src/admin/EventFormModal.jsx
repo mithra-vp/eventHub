@@ -38,13 +38,23 @@ const EventFormModal = ({ mode = "create", event = null, onClose, onSaved }) => 
   const [formData, setFormData] = useState(emptyForm);
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [categories, setCategories] = useState([]);
+
+  // Regex Patterns
+  const patterns = {
+    title: /^[a-zA-Z0-9\s\-_:]{5,50}$/, // 5-50 chars, basic punctuation allowed
+    location: /^.{5,100}$/, // 5-100 chars
+    description: /^.{10,1000}$/, // 10-1000 chars
+    price: /^\d+(\.\d{1,2})?$/, // Positive number, up to 2 decimal places
+  };
 
   useEffect(() => {
     setFormData(mode === "edit" && event ? toFormState(event) : emptyForm);
     setImageFile(null);
     setPreview(mode === "edit" ? event?.image || null : null);
+    setErrors({});
   }, [event, mode]);
 
   useEffect(() => {
@@ -79,6 +89,20 @@ const EventFormModal = ({ mode = "create", event = null, onClose, onSaved }) => 
   const handleChange = (evt) => {
     const { name, value } = evt.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Real-time validation
+    if (patterns[name]) {
+      const isValid = patterns[name].test(value);
+      let errorMsg = "";
+
+      if (!isValid) {
+        if (name === "title") errorMsg = "Title must be 5-50 characters.";
+        if (name === "location") errorMsg = "Location must be at least 5 characters.";
+        if (name === "description") errorMsg = "Description must be at least 10 characters.";
+        if (name === "price") errorMsg = "Please enter a valid price.";
+      }
+      setErrors((prev) => ({ ...prev, [name]: errorMsg }));
+    }
   };
 
   const handleImageChange = (evt) => {
@@ -94,6 +118,13 @@ const EventFormModal = ({ mode = "create", event = null, onClose, onSaved }) => 
   const handleSubmit = async (evt) => {
     evt.preventDefault();
     if (submitting) return;
+
+    // Check for validation errors
+    if (Object.values(errors).some((msg) => msg)) {
+      toast.error("Please fix the validation errors.");
+      return;
+    }
+
     if (mode === "create" && !imageFile) {
       toast.error("Please choose an event banner image");
       return;
@@ -102,12 +133,12 @@ const EventFormModal = ({ mode = "create", event = null, onClose, onSaved }) => 
     const data = new FormData();
     data.append("title", formData.title);
     data.append("description", formData.description);
-    
+
     // Combine date and time
     const combinedDate = `${formData.date}T${formData.time}:00`;
     data.append("date", combinedDate);
     data.append("time", formData.time);
-    
+
     data.append("location", formData.location);
     data.append("category", formData.category);
     data.append("price", Number(formData.price));
@@ -153,7 +184,16 @@ const EventFormModal = ({ mode = "create", event = null, onClose, onSaved }) => 
           <div className="form-scroll-area">
             <div className="event-field">
               <label htmlFor="event-title"><FiType /> Event Title</label>
-              <input id="event-title" name="title" value={formData.title} onChange={handleChange} placeholder="e.g. Summer Music Fest 2026" required />
+              <input
+                id="event-title"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                className={errors.title ? "input-error" : ""}
+                placeholder="e.g. Summer Music Fest 2026"
+                required
+              />
+              {errors.title && <span className="error-msg">{errors.title}</span>}
             </div>
 
             <div className="event-form-row">
@@ -198,11 +238,31 @@ const EventFormModal = ({ mode = "create", event = null, onClose, onSaved }) => 
             <div className="event-form-row">
               <div className="event-field">
                 <label htmlFor="event-location"><FiMapPin /> Location</label>
-                <input id="event-location" name="location" value={formData.location} onChange={handleChange} placeholder="Venue address" required />
+                <input
+                  id="event-location"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  className={errors.location ? "input-error" : ""}
+                  placeholder="Venue address"
+                  required
+                />
+                {errors.location && <span className="error-msg">{errors.location}</span>}
               </div>
               <div className="event-field">
                 <label htmlFor="event-price"><FiDollarSign /> Price (₹)</label>
-                <input id="event-price" type="number" min="0" name="price" value={formData.price} onChange={handleChange} placeholder="Ticket cost" required />
+                <input
+                  id="event-price"
+                  type="number"
+                  min="0"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleChange}
+                  className={errors.price ? "input-error" : ""}
+                  placeholder="Ticket cost"
+                  required
+                />
+                {errors.price && <span className="error-msg">{errors.price}</span>}
               </div>
             </div>
 
@@ -214,9 +274,11 @@ const EventFormModal = ({ mode = "create", event = null, onClose, onSaved }) => 
                 rows="4"
                 value={formData.description}
                 onChange={handleChange}
+                className={errors.description ? "input-error" : ""}
                 placeholder="Tell attendees what to expect..."
                 required
               />
+              {errors.description && <span className="error-msg">{errors.description}</span>}
             </div>
           </div>
 
