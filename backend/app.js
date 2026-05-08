@@ -26,6 +26,15 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 // 3. ROUTES LAST (This uses the prepared data)
+
+app.get("/", (req, res) => {
+  res.status(200).json({ 
+    message: "EventHub API is live and running!",
+    status: "Healthy" 
+  });
+});
+
+
 app.use('/api/auth', authRoute);
 app.use('/api/events', eventRoute);
 app.use("/api/users", userRoute);
