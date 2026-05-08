@@ -208,33 +208,6 @@ const Dashboard = () => {
     });
   }, [activity]);
 
-  const exportToCSV = () => {
-    if (!activityRows.length) return toast.info("No data to export");
-    
-    const headers = ["User", "Event", "Attendees", "Review", "Status", "Rating", "Date"];
-    const rows = activityRows.map(row => [
-      row.userName,
-      row.eventName,
-      row.attendees,
-      row.review.replace(/,/g, " "),
-      row.cancelStatus,
-      row.rating || 0,
-      row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "-"
-    ]);
-
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `activity_report_${new Date().toLocaleDateString()}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Report downloaded successfully");
-  };
-
   const scrollToSection = (id) => {
     setSidebarOpen(false);
     const el = document.getElementById(id);
@@ -442,11 +415,8 @@ const Dashboard = () => {
         </div>
 
         <div id="sec-activity" className="table-container dash-section">
-          <div className="admin-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="admin-section-title">
             Activity Logs
-            <button className="eh-btn-nav" style={{ fontSize: '12px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={exportToCSV}>
-              <FiDownload /> Export Report
-            </button>
           </div>
           <div className="table-wrapper">
             <table className="admin-table">
