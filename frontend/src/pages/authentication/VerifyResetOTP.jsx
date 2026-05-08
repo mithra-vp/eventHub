@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { api } from "../../api/client";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "./verify.css"; 
@@ -66,8 +66,8 @@ const VerifyResetOTP = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post(
-        "http://localhost:8000/api/auth/verify-reset-otp",
+      const res = await api.post(
+        "/auth/verify-reset-otp",
         { email, otp: otp.join("") },
       );
 

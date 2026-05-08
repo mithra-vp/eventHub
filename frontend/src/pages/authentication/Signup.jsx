@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { api } from "../../api/client";
 import { useNavigate, Link } from 'react-router-dom';
 import { FiX } from "react-icons/fi";
 import { toast } from 'react-toastify';
@@ -58,7 +58,7 @@ const Signup = ({ isModal = false }) => {
 
         setSubmitting(true);
         try {
-            const res = await axios.post('http://localhost:8000/api/auth/signup', formData);
+            const res = await api.post('/auth/signup', formData);
             toast.success(res.data.message || "OTP sent to your email!");
             
             setTimeout(() => {

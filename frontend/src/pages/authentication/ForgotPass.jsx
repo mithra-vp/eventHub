@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { api } from "../../api/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "./for.css";
@@ -23,8 +23,8 @@ const ForgotPass = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post(
-        "http://localhost:8000/api/auth/forgot-password",
+      const res = await api.post(
+        "/auth/forgot-password",
         { email },
       );
 

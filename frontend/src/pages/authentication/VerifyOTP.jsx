@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import axios from "axios";
+import { api } from "../../api/client";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "./login.css";
@@ -63,10 +63,9 @@ const VerifyOTP = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post(
-        "http://localhost:8000/api/auth/verify-otp",
-        { email, otp: otp.join("") },
-        { withCredentials: true },
+      const res = await api.post(
+        "/auth/verify-otp",
+        { email, otp: otp.join("") }
       );
       toast.success(res.data?.message || "Verified");
       setTimeout(() => navigate("/login"), 800);
@@ -82,7 +81,7 @@ const VerifyOTP = () => {
 
     try {
       setResending(true);
-      const res = await axios.post("http://localhost:8000/api/auth/resend-otp", { email });
+      const res = await api.post("/auth/resend-otp", { email });
       toast.success(res.data?.message || "OTP re-sent");
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to resend OTP");

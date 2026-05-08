@@ -261,10 +261,10 @@ const login = async (req, res) => {
 
     // Set Cookie
     res.cookie("token", token, {
-      httpOnly: true, // Prevents JavaScript access (XSS protection)
-      secure: isSecure, // Works on localhost (http) and production (https)
-      sameSite: "Lax", // CSRF protection
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      httpOnly: true,
+      secure: true, // Required for sameSite: "None"
+      sameSite: "None", // Required for cross-domain cookies
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
@@ -279,8 +279,8 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    sameSite: "Lax",
-    secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+    sameSite: "None",
+    secure: true,
   });
   res.status(200).json({ message: "Logged out" });
 };
