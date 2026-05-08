@@ -29,8 +29,7 @@ app.use(express.urlencoded({extended: true}));
 
 app.get("/", (req, res) => {
   res.status(200).json({ 
-    message: "EventHub API is live and running!",
-    status: "Healthy" 
+    message: "EventHub API is live and running!"
   });
 });
 
