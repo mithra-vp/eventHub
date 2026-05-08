@@ -3,14 +3,69 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const UserModel = require("../models/userModel"); // Ensure the path and case match your file
 
-// --- Helper: Email Transporter ---
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS, // Use your Gmail App Password
-  },
-});
+const trimEnv = (key) => (process.env[key] || "").toString().trim();
+
+const getMailerConfig = () => {
+  const smtpHost = trimEnv("SMTP_HOST");
+  const smtpUser = trimEnv("SMTP_USER");
+  const smtpPass = trimEnv("SMTP_PASS");
+
+  if (smtpHost && smtpUser && smtpPass) {
+    const smtpPort = Number.parseInt(trimEnv("SMTP_PORT") || "587", 10);
+    const smtpSecureRaw = trimEnv("SMTP_SECURE").toLowerCase();
+    const smtpSecure = smtpSecureRaw ? smtpSecureRaw === "true" : smtpPort === 465;
+
+    return {
+      transport: {
+        host: smtpHost,
+        port: Number.isFinite(smtpPort) ? smtpPort : 587,
+        secure: smtpSecure,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      },
+      from: trimEnv("MAIL_FROM") || smtpUser,
+    };
+  }
+
+  const gmailUser = trimEnv("GMAIL_USER");
+  const gmailPass = trimEnv("GMAIL_PASS");
+
+  if (gmailUser && gmailPass) {
+    return {
+      transport: {
+        service: "gmail",
+        auth: {
+          user: gmailUser,
+          pass: gmailPass,
+        },
+      },
+      from: trimEnv("MAIL_FROM") || gmailUser,
+    };
+  }
+
+  return null;
+};
+
+const sendMail = async ({ to, subject, text }) => {
+  const mailerConfig = getMailerConfig();
+  if (!mailerConfig) {
+    const err = new Error(
+      "Email service is not configured. Set SMTP_HOST/SMTP_USER/SMTP_PASS (recommended) or GMAIL_USER/GMAIL_PASS.",
+    );
+    err.code = "EMAIL_NOT_CONFIGURED";
+    throw err;
+  }
+
+  const transporter = nodemailer.createTransport(mailerConfig.transport);
+  return transporter.sendMail({
+    from: mailerConfig.from,
+    to,
+    subject,
+    text,
+  });
+};
 
 const normalizeEmail = (email) => (email || "").toString().trim().toLowerCase();
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -26,6 +81,26 @@ const generateOtp = () => {
     expire: now + OTP_EXPIRY_MS,
     cooldown: now + OTP_COOLDOWN_MS,
   };
+};
+
+const handleEmailFailure = (res, error) => {
+  const code = error?.code;
+  const message = error?.message || "Email delivery failed";
+
+  // eslint-disable-next-line no-console
+  console.error("Email send failed:", { code, message });
+
+  if (code === "EMAIL_NOT_CONFIGURED") {
+    return res.status(503).json({
+      message:
+        "Signup email service is not configured on server. Please configure SMTP/Gmail env vars and redeploy.",
+    });
+  }
+
+  return res.status(503).json({
+    message:
+      "Could not send OTP email right now. Please try again in a moment or contact support.",
+  });
 };
 
 const findUserByEmail = async (email) => {
@@ -73,12 +148,15 @@ const resendSignupOTP = async (req, res) => {
     user.otp = otp;
     await user.save();
 
-    await transporter.sendMail({
-      from: process.env.GMAIL_USER,
-      to: normalizedEmail,
-      subject: "Verify your Event Management Account",
-      text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
-    });
+    try {
+      await sendMail({
+        to: normalizedEmail,
+        subject: "Verify your Event Management Account",
+        text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+      });
+    } catch (emailErr) {
+      return handleEmailFailure(res, emailErr);
+    }
 
     return res.status(200).json({ message: "OTP re-sent to email. Please verify." });
   } catch (error) {
@@ -121,12 +199,15 @@ const signup = async (req, res) => {
       existingUser.otp = otp;
       await existingUser.save();
 
-      await transporter.sendMail({
-        from: process.env.GMAIL_USER,
-        to: normalizedEmail,
-        subject: "Verify your Event Management Account",
-        text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
-      });
+      try {
+        await sendMail({
+          to: normalizedEmail,
+          subject: "Verify your Event Management Account",
+          text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+        });
+      } catch (emailErr) {
+        return handleEmailFailure(res, emailErr);
+      }
 
       return res.status(200).json({ message: "OTP re-sent to email. Please verify." });
     }
@@ -144,12 +225,15 @@ const signup = async (req, res) => {
       otp,
     });
 
-    await transporter.sendMail({
-      from: process.env.GMAIL_USER,
-      to: normalizedEmail,
-      subject: "Verify your Event Management Account",
-      text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
-    });
+    try {
+      await sendMail({
+        to: normalizedEmail,
+        subject: "Verify your Event Management Account",
+        text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+      });
+    } catch (emailErr) {
+      return handleEmailFailure(res, emailErr);
+    }
 
     res.status(201).json({ message: "OTP sent to email. Please verify." });
   } catch (error) {
@@ -168,12 +252,15 @@ const signup = async (req, res) => {
           const otp = generateOtp();
           existingUser.otp = otp;
           await existingUser.save();
-          await transporter.sendMail({
-            from: process.env.GMAIL_USER,
-            to: normalizedEmail,
-            subject: "Verify your Event Management Account",
-            text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
-          });
+          try {
+            await sendMail({
+              to: normalizedEmail,
+              subject: "Verify your Event Management Account",
+              text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+            });
+          } catch (emailErr) {
+            return handleEmailFailure(res, emailErr);
+          }
           return res.status(200).json({ message: "OTP re-sent to email. Please verify." });
         }
       } catch (_) {
@@ -309,12 +396,15 @@ const forgotPassword = async (req, res) => {
     user.otp = { value: otpValue, expire: Date.now() + 10 * 60 * 1000 };
     await user.save();
 
-    await transporter.sendMail({
-      from: process.env.GMAIL_USER,
-      to: normalizedEmail,
-      subject: "Password Reset OTP",
-      text: `Your reset OTP is ${otpValue}`,
-    });
+    try {
+      await sendMail({
+        to: normalizedEmail,
+        subject: "Password Reset OTP",
+        text: `Your reset OTP is ${otpValue}`,
+      });
+    } catch (emailErr) {
+      return handleEmailFailure(res, emailErr);
+    }
 
     res.status(200).json({ message: "Reset OTP sent to email" });
   } catch (error) {
