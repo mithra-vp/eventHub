@@ -22,6 +22,16 @@ const parseCsv = (value) =>
     .map((v) => v.trim())
     .filter(Boolean);
 
+const normalizeOrigin = (value) => {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    return url.origin.toLowerCase();
+  } catch (_) {
+    return value.toString().trim().toLowerCase().replace(/\/+$/, "");
+  }
+};
+
 const defaultAllowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
@@ -29,8 +39,10 @@ const defaultAllowedOrigins = [
   "https://event-hub-hjic.vercel.app",
 ];
 
-const envAllowedOrigins = parseCsv(process.env.CORS_ORIGINS);
-const exactAllowedOrigins = new Set([...defaultAllowedOrigins, ...envAllowedOrigins]);
+const envAllowedOrigins = parseCsv(process.env.CORS_ORIGINS).map(normalizeOrigin);
+const exactAllowedOrigins = new Set(
+  [...defaultAllowedOrigins, ...envAllowedOrigins].map(normalizeOrigin),
+);
 
 const envAllowedHostSuffixes = parseCsv(process.env.CORS_ALLOWED_HOST_SUFFIXES)
   .map((s) => s.toLowerCase())
@@ -39,10 +51,11 @@ const envAllowedHostSuffixes = parseCsv(process.env.CORS_ALLOWED_HOST_SUFFIXES)
 const isAllowedOrigin = (origin) => {
   if (allowAllCors) return true;
   if (!origin) return true; // server-to-server / curl / postman
-  if (exactAllowedOrigins.has(origin)) return true;
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (exactAllowedOrigins.has(normalizedOrigin)) return true;
 
   try {
-    const { hostname, protocol } = new URL(origin);
+    const { hostname, protocol } = new URL(normalizedOrigin);
 
     // Always allow localhost dev origins on any port
     if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(hostname)) return true;
