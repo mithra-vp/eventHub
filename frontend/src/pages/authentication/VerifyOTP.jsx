@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -15,8 +15,29 @@ const VerifyOTP = () => {
 
   const email = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    return params.get("email") || location.state?.email || "";
+    return (params.get("email") || location.state?.email || "").toLowerCase().trim();
   }, [location.search, location.state]);
+
+  const pendingSignupEmail = useMemo(() => {
+    return (sessionStorage.getItem("pendingSignupEmail") || "").toLowerCase().trim();
+  }, []);
+
+  const lockedEmail = pendingSignupEmail || email;
+  const hasEmailMismatch = Boolean(pendingSignupEmail && email && pendingSignupEmail !== email);
+
+  useEffect(() => {
+    if (!email) {
+      toast.error("Missing email. Please sign up again.");
+      navigate("/signup", { replace: true });
+    }
+  }, [email, navigate]);
+
+  useEffect(() => {
+    if (hasEmailMismatch) {
+      toast.error("OTP is allowed only for the same signup email.");
+      navigate("/signup", { replace: true });
+    }
+  }, [hasEmailMismatch, navigate]);
 
   const handleChange = (element, index) => {
     if (isNaN(element.value)) return false;
@@ -59,16 +80,18 @@ const VerifyOTP = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
-    if (!email) return toast.error("Missing email. Please sign up again.");
+    if (!lockedEmail) return toast.error("Missing email. Please sign up again.");
+    if (hasEmailMismatch) return toast.error("Please sign up again with the same email.");
 
     setLoading(true);
     try {
       const res = await api.post(
         "/auth/verify-otp",
-        { email, otp: otp.join("") }
+        { email: lockedEmail, otp: otp.join("") }
       );
-      toast.success(res.data?.message || "Verified");
-      setTimeout(() => navigate("/login"), 800);
+      toast.success(res.data?.message || "Signup successful. Please login.");
+      sessionStorage.removeItem("pendingSignupEmail");
+      setTimeout(() => navigate("/login", { state: { email: lockedEmail } }), 800);
     } catch (err) {
       toast.error(err.response?.data?.message || "Verification failed");
       setLoading(false);
@@ -77,11 +100,12 @@ const VerifyOTP = () => {
 
   const resendOtp = async () => {
     if (resending) return;
-    if (!email) return toast.error("Missing email. Please sign up again.");
+    if (!lockedEmail) return toast.error("Missing email. Please sign up again.");
+    if (hasEmailMismatch) return toast.error("Please sign up again with the same email.");
 
     try {
       setResending(true);
-      const res = await api.post("/auth/resend-otp", { email });
+      const res = await api.post("/auth/resend-otp", { email: lockedEmail });
       toast.success(res.data?.message || "OTP re-sent");
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to resend OTP");
@@ -96,7 +120,7 @@ const VerifyOTP = () => {
         <div className="auth-image-side">
           <div className="auth-overlay">
             <h1>Verify your email.</h1>
-            <p>Enter the 6-digit code sent to {email || "your email"}.</p>
+            <p>Enter the 6-digit code sent to {lockedEmail || "your email"}.</p>
           </div>
         </div>
         <div className="auth-form-side">

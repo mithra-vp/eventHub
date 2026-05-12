@@ -58,11 +58,14 @@ const Signup = ({ isModal = false }) => {
 
         setSubmitting(true);
         try {
-            const res = await api.post('/auth/signup', formData);
+            const normalizedEmail = formData.email.toLowerCase().trim();
+            const payload = { ...formData, email: normalizedEmail };
+            const res = await api.post('/auth/signup', payload);
             toast.success(res.data.message || "OTP sent to your email!");
+            sessionStorage.setItem("pendingSignupEmail", normalizedEmail);
             
             setTimeout(() => {
-                const email = encodeURIComponent(formData.email);
+                const email = encodeURIComponent(normalizedEmail);
                 navigate(`/verify-otp?email=${email}`);
             }, 800);
         } catch (err) {
@@ -71,6 +74,7 @@ const Signup = ({ isModal = false }) => {
             toast.error(message);
             // If the email already exists (verified), guide user to login
             if (status === 409) {
+                sessionStorage.removeItem("pendingSignupEmail");
                 setTimeout(() => navigate('/login'), 900);
             }
             setSubmitting(false);

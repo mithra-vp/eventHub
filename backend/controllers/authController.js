@@ -290,12 +290,31 @@ const signup = async (req, res) => {
 // 2. VERIFY OTP
 const verifyOTP = async (req, res) => {
   try {
-    const { email, otp } = req.body;
-    const user = await findUserByEmail(email);
+    const normalizedEmail = normalizeEmail(req.body?.email);
+    const otpRaw = (req.body?.otp || "").toString().trim();
+
+    if (!normalizedEmail) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    if (!/^\d{6}$/.test(otpRaw)) {
+      return res.status(400).json({ message: "OTP must be a 6-digit code" });
+    }
+
+    const user = await findUserByEmail(normalizedEmail);
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    if (isUserVerified(user)) {
+      return res.status(409).json({ message: "Account already verified. Please login." });
+    }
 
     if (
-      !user ||
-      user.otp.value !== parseInt(otp) ||
+      !user.otp?.value ||
+      user.otp.value !== parseInt(otpRaw, 10) ||
+      !user.otp?.expire ||
       user.otp.expire < Date.now()
     ) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
@@ -307,7 +326,7 @@ const verifyOTP = async (req, res) => {
     user.otp.cooldown = null;
     await user.save();
 
-    res.status(200).json({ message: "Account verified successfully!" });
+    res.status(200).json({ message: "Signup successful. Your email is verified. Please login." });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
