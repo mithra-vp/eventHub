@@ -61,7 +61,15 @@ const getGmailAccessToken = async (emailConfig) => {
 
   if (!response.ok || !payload?.access_token) {
     const err = new Error(payload?.error_description || payload?.error || "Failed to get Gmail access token.");
-    err.code = response.status === 401 || response.status === 403 ? "EOAUTH2" : "EOAUTH2_TOKEN";
+    if (response.status === 401 || response.status === 403) {
+      err.code = "EOAUTH2";
+    } else if (response.status === 429) {
+      err.code = "EMAIL_RATE_LIMITED";
+    } else if (response.status >= 500) {
+      err.code = "EMAIL_PROVIDER_UNAVAILABLE";
+    } else {
+      err.code = "EOAUTH2_TOKEN";
+    }
     err.responseCode = response.status;
     err.response = payload;
     throw err;
@@ -115,8 +123,12 @@ const sendMail = async ({ to, subject, text }) => {
     const err = new Error(payload?.error?.message || "Gmail API failed to send email.");
     if (response.status === 401 || response.status === 403) {
       err.code = "EOAUTH2";
-    } else if (response.status === 408 || response.status === 429 || response.status >= 500) {
+    } else if (response.status === 429) {
+      err.code = "EMAIL_RATE_LIMITED";
+    } else if (response.status === 408) {
       err.code = "ETIMEDOUT";
+    } else if (response.status >= 500) {
+      err.code = "EMAIL_PROVIDER_UNAVAILABLE";
     } else {
       err.code = "EMAIL_DELIVERY_FAILED";
     }
@@ -174,6 +186,22 @@ const handleEmailFailure = (res, error) => {
       message:
         "Email provider timeout from server. Please retry in a moment.",
       emailFallbackCode: "timeout",
+    });
+  }
+
+  if (code === "EMAIL_RATE_LIMITED") {
+    return res.status(429).json({
+      message:
+        "Email sending is rate-limited by Google right now. Please wait and try again.",
+      emailFallbackCode: "rate_limited",
+    });
+  }
+
+  if (code === "EMAIL_PROVIDER_UNAVAILABLE") {
+    return res.status(503).json({
+      message:
+        "Google email service is temporarily unavailable. Please retry shortly.",
+      emailFallbackCode: "provider_unavailable",
     });
   }
 
