@@ -11,6 +11,11 @@ const toKey = (d) => {
   return `${year}-${month}-${day}`;
 };
 
+const startOfToday = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
 const CalendarPage = () => {
   const [events, setEvents] = useState([]);
   const [month, setMonth] = useState(new Date().getMonth());
@@ -34,15 +39,23 @@ const CalendarPage = () => {
     load();
   }, []);
 
+  const upcomingEvents = useMemo(() => {
+    const today = startOfToday();
+    return events
+      .slice()
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .filter((e) => new Date(e.date) >= today);
+  }, [events]);
+
   const marks = useMemo(() => {
     const map = new Map();
-    for (const e of events) {
+    for (const e of upcomingEvents) {
       const k = toKey(e.date);
       if (!map.has(k)) map.set(k, []);
       map.get(k).push(e);
     }
     return map;
-  }, [events]);
+  }, [upcomingEvents]);
 
   const first = new Date(year, month, 1);
   const startDay = first.getDay(); 
@@ -65,17 +78,10 @@ const CalendarPage = () => {
     setMonth(next.getMonth());
   };
 
-  const upcomingEvents = useMemo(() => {
-    return events
-      .slice()
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .filter(e => new Date(e.date) >= new Date().setHours(0,0,0,0));
-  }, [events]);
-
   const selectedEvents = useMemo(() => {
     if (!selectedDate) return [];
-    return events.filter(e => toKey(e.date) === selectedDate);
-  }, [events, selectedDate]);
+    return upcomingEvents.filter((e) => toKey(e.date) === selectedDate);
+  }, [upcomingEvents, selectedDate]);
 
   return (
     <div className="cal-page">
@@ -106,14 +112,15 @@ const CalendarPage = () => {
                   const key = toKey(date);
                   const dayEvents = marks.get(key) || [];
                   const isToday = key === toKey(new Date());
+                  const isPastDay = date < startOfToday();
                   
                   return (
                     <div 
                       key={idx} 
-                      className={`cal-cell ${dayEvents.length ? "has-events" : ""} ${isToday ? "is-today" : ""} ${selectedDate === key ? "is-selected" : ""}`}
+                      className={`cal-cell ${dayEvents.length ? "has-events" : ""} ${isToday ? "is-today" : ""} ${isPastDay ? "is-past" : ""} ${selectedDate === key ? "is-selected" : ""}`}
                       onMouseEnter={() => dayEvents.length > 0 && setHoveredDate(key)}
                       onMouseLeave={() => setHoveredDate(null)}
-                      onClick={() => setSelectedDate(key === selectedDate ? null : key)}
+                      onClick={() => !isPastDay && setSelectedDate(key === selectedDate ? null : key)}
                     >
                       <div className="cal-day-num-wrapper">
                         <div className="cal-day-num">{date.getDate()}</div>

@@ -19,6 +19,14 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
+const getTotalPages = (totalItems, pageSize) => Math.max(1, Math.ceil(totalItems / pageSize));
+const getRangeLabel = (totalItems, page, pageSize) => {
+  if (!totalItems) return "0-0 of 0";
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, totalItems);
+  return `${start}-${end} of ${totalItems}`;
+};
+
 const RevenueBars = ({ data }) => {
   const months = data?.months || Array.from({ length: 12 }, (_, i) => ({ month: i + 1, revenue: 0 }));
   const total = data?.total || 0;
@@ -117,7 +125,16 @@ const RevenueBars = ({ data }) => {
 };
 
 const Dashboard = () => {
+  const EVENT_PAGE_SIZE_OPTIONS = [5, 10, 20];
   const [events, setEvents] = useState([]);
+  const [eventPage, setEventPage] = useState(1);
+  const [eventsPerPage, setEventsPerPage] = useState(5);
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityPerPage, setActivityPerPage] = useState(5);
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersPerPage, setUsersPerPage] = useState(5);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [paymentsPerPage, setPaymentsPerPage] = useState(5);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -208,6 +225,65 @@ const Dashboard = () => {
     });
   }, [activity]);
 
+  const totalEventPages = useMemo(
+    () => getTotalPages(events.length, eventsPerPage),
+    [events.length, eventsPerPage],
+  );
+
+  const paginatedEvents = useMemo(() => {
+    const start = (eventPage - 1) * eventsPerPage;
+    return events.slice(start, start + eventsPerPage);
+  }, [events, eventPage, eventsPerPage]);
+
+  const eventRangeLabel = useMemo(() => {
+    return getRangeLabel(events.length, eventPage, eventsPerPage);
+  }, [events.length, eventPage, eventsPerPage]);
+
+  const totalActivityPages = useMemo(
+    () => getTotalPages(activityRows.length, activityPerPage),
+    [activityRows.length, activityPerPage],
+  );
+
+  const paginatedActivityRows = useMemo(() => {
+    const start = (activityPage - 1) * activityPerPage;
+    return activityRows.slice(start, start + activityPerPage);
+  }, [activityRows, activityPage, activityPerPage]);
+
+  const activityRangeLabel = useMemo(
+    () => getRangeLabel(activityRows.length, activityPage, activityPerPage),
+    [activityRows.length, activityPage, activityPerPage],
+  );
+
+  const totalUsersPages = useMemo(
+    () => getTotalPages(users.length, usersPerPage),
+    [users.length, usersPerPage],
+  );
+
+  const paginatedUsers = useMemo(() => {
+    const start = (usersPage - 1) * usersPerPage;
+    return users.slice(start, start + usersPerPage);
+  }, [users, usersPage, usersPerPage]);
+
+  const usersRangeLabel = useMemo(
+    () => getRangeLabel(users.length, usersPage, usersPerPage),
+    [users.length, usersPage, usersPerPage],
+  );
+
+  const totalPaymentsPages = useMemo(
+    () => getTotalPages(payments.length, paymentsPerPage),
+    [payments.length, paymentsPerPage],
+  );
+
+  const paginatedPayments = useMemo(() => {
+    const start = (paymentsPage - 1) * paymentsPerPage;
+    return payments.slice(start, start + paymentsPerPage);
+  }, [payments, paymentsPage, paymentsPerPage]);
+
+  const paymentsRangeLabel = useMemo(
+    () => getRangeLabel(payments.length, paymentsPage, paymentsPerPage),
+    [payments.length, paymentsPage, paymentsPerPage],
+  );
+
   const scrollToSection = (id) => {
     setSidebarOpen(false);
     const el = document.getElementById(id);
@@ -264,6 +340,30 @@ const Dashboard = () => {
     };
     fetchAdminData();
   }, [reloadKey]);
+
+  useEffect(() => {
+    if (eventPage > totalEventPages) {
+      setEventPage(totalEventPages);
+    }
+  }, [eventPage, totalEventPages]);
+
+  useEffect(() => {
+    if (activityPage > totalActivityPages) {
+      setActivityPage(totalActivityPages);
+    }
+  }, [activityPage, totalActivityPages]);
+
+  useEffect(() => {
+    if (usersPage > totalUsersPages) {
+      setUsersPage(totalUsersPages);
+    }
+  }, [usersPage, totalUsersPages]);
+
+  useEffect(() => {
+    if (paymentsPage > totalPaymentsPages) {
+      setPaymentsPage(totalPaymentsPages);
+    }
+  }, [paymentsPage, totalPaymentsPages]);
 
   const openConfirm = (type, id, msg) => {
     setShowConfirm({ show: true, type, id, msg });
@@ -387,8 +487,8 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {events.length ? (
-                    events.map((event) => (
+                  {paginatedEvents.length ? (
+                    paginatedEvents.map((event) => (
                       <tr key={event._id}>
                         <td data-label="Event Name"><strong>{event.title}</strong></td>
                         <td data-label="Date">{new Date(event.date).toLocaleDateString()}</td>
@@ -408,6 +508,44 @@ const Dashboard = () => {
               </table>
             )}
           </div>
+          {!loading && events.length > 0 && (
+            <div className="table-pagination">
+              <div className="page-info">Showing {eventRangeLabel}</div>
+              <div className="page-actions">
+                <label htmlFor="events-page-size" className="page-size-label">Rows</label>
+                <select
+                  id="events-page-size"
+                  className="page-size-select"
+                  value={eventsPerPage}
+                  onChange={(e) => {
+                    setEventsPerPage(Number(e.target.value) || 5);
+                    setEventPage(1);
+                  }}
+                >
+                  {EVENT_PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={eventPage === 1}
+                  onClick={() => setEventPage((prev) => Math.max(1, prev - 1))}
+                >
+                  Prev
+                </button>
+                <span className="page-count">Page {eventPage} / {totalEventPages}</span>
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={eventPage === totalEventPages}
+                  onClick={() => setEventPage((prev) => Math.min(totalEventPages, prev + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div id="sec-revenue" className="dash-section">
@@ -431,8 +569,8 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {activityRows.length ? (
-                  activityRows.map((row) => (
+                {paginatedActivityRows.length ? (
+                  paginatedActivityRows.map((row) => (
                     <tr key={row.key}>
                       <td data-label="User"><strong>{row.userName}</strong></td>
                       <td data-label="Event">{row.eventName}</td>
@@ -454,6 +592,44 @@ const Dashboard = () => {
               </tbody>
             </table>
           </div>
+          {activityRows.length > 0 && (
+            <div className="table-pagination">
+              <div className="page-info">Showing {activityRangeLabel}</div>
+              <div className="page-actions">
+                <label htmlFor="activity-page-size" className="page-size-label">Rows</label>
+                <select
+                  id="activity-page-size"
+                  className="page-size-select"
+                  value={activityPerPage}
+                  onChange={(e) => {
+                    setActivityPerPage(Number(e.target.value) || 5);
+                    setActivityPage(1);
+                  }}
+                >
+                  {EVENT_PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={activityPage === 1}
+                  onClick={() => setActivityPage((prev) => Math.max(1, prev - 1))}
+                >
+                  Prev
+                </button>
+                <span className="page-count">Page {activityPage} / {totalActivityPages}</span>
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={activityPage === totalActivityPages}
+                  onClick={() => setActivityPage((prev) => Math.min(totalActivityPages, prev + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="admin-split">
@@ -470,8 +646,8 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.length ? (
-                    users.map((u) => (
+                  {paginatedUsers.length ? (
+                    paginatedUsers.map((u) => (
                       <tr key={u._id}>
                         <td data-label="Name"><strong>{u.name}</strong></td>
                         <td data-label="Email">{u.email}</td>
@@ -487,6 +663,44 @@ const Dashboard = () => {
                 </tbody>
               </table>
             </div>
+            {users.length > 0 && (
+              <div className="table-pagination">
+                <div className="page-info">Showing {usersRangeLabel}</div>
+                <div className="page-actions">
+                  <label htmlFor="users-page-size" className="page-size-label">Rows</label>
+                  <select
+                    id="users-page-size"
+                    className="page-size-select"
+                    value={usersPerPage}
+                    onChange={(e) => {
+                      setUsersPerPage(Number(e.target.value) || 5);
+                      setUsersPage(1);
+                    }}
+                  >
+                    {EVENT_PAGE_SIZE_OPTIONS.map((size) => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="page-btn"
+                    disabled={usersPage === 1}
+                    onClick={() => setUsersPage((prev) => Math.max(1, prev - 1))}
+                  >
+                    Prev
+                  </button>
+                  <span className="page-count">Page {usersPage} / {totalUsersPages}</span>
+                  <button
+                    type="button"
+                    className="page-btn"
+                    disabled={usersPage === totalUsersPages}
+                    onClick={() => setUsersPage((prev) => Math.min(totalUsersPages, prev + 1))}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div id="sec-reminders" className="table-container dash-section">
@@ -522,8 +736,8 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {payments.length ? (
-                  payments.map((p) => (
+                {paginatedPayments.length ? (
+                  paginatedPayments.map((p) => (
                     <tr key={p._id}>
                       <td data-label="User">{p.user?.name}</td>
                       <td data-label="Event"><strong>{p.event?.title}</strong></td>
@@ -541,6 +755,44 @@ const Dashboard = () => {
               </tbody>
             </table>
           </div>
+          {payments.length > 0 && (
+            <div className="table-pagination">
+              <div className="page-info">Showing {paymentsRangeLabel}</div>
+              <div className="page-actions">
+                <label htmlFor="payments-page-size" className="page-size-label">Rows</label>
+                <select
+                  id="payments-page-size"
+                  className="page-size-select"
+                  value={paymentsPerPage}
+                  onChange={(e) => {
+                    setPaymentsPerPage(Number(e.target.value) || 5);
+                    setPaymentsPage(1);
+                  }}
+                >
+                  {EVENT_PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={paymentsPage === 1}
+                  onClick={() => setPaymentsPage((prev) => Math.max(1, prev - 1))}
+                >
+                  Prev
+                </button>
+                <span className="page-count">Page {paymentsPage} / {totalPaymentsPages}</span>
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={paymentsPage === totalPaymentsPages}
+                  onClick={() => setPaymentsPage((prev) => Math.min(totalPaymentsPages, prev + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 

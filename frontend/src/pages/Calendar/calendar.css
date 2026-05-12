@@ -134,6 +134,10 @@
   box-shadow: 0 8px 20px rgba(236, 72, 153, 0.15);
 }
 
+.cal-cell.is-past {
+  opacity: 0.5;
+}
+
 .cal-cell.is-today {
   background: transparent;
   border: 2px solid var(--eh-primary);

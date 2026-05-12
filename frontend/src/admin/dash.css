@@ -211,6 +211,79 @@
 .edit-btn:hover { background: var(--eh-primary); color: white; border-color: var(--eh-primary); }
 .delete-btn:hover { background: var(--eh-danger); color: white; border-color: var(--eh-danger); }
 
+.table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--eh-border);
+  background: var(--eh-surface-2);
+}
+
+.page-info {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--eh-muted);
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-size-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--eh-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.page-size-select {
+  min-width: 64px;
+  height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--eh-border);
+  border-radius: 10px;
+  background: var(--eh-surface);
+  color: var(--eh-text);
+  font-weight: 800;
+}
+
+.page-btn {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--eh-border);
+  border-radius: 10px;
+  background: var(--eh-surface);
+  color: var(--eh-text);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: var(--eh-transition);
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--eh-primary);
+  border-color: var(--eh-primary);
+  color: #fff;
+}
+
+.page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.page-count {
+  min-width: 86px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--eh-muted);
+}
+
 /* REVENUE CHART */
 .rev-card { background: var(--eh-surface); padding: 32px; border-radius: 24px; border: 1px solid var(--eh-border); margin-bottom: 48px; box-shadow: var(--eh-shadow); }
 .rev-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
@@ -351,6 +424,17 @@
   .table-container {
     border-radius: 20px;
     overflow: hidden;
+  }
+
+  .table-pagination {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 18px 18px;
+  }
+
+  .page-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .table-wrapper {
