@@ -4,8 +4,16 @@ const BookingModel = require("../models/bookingModel");
 const ReviewModel = require("../models/reviewModel");
 const ActivityLogModel = require("../models/activityLogModel");
 
+const verifiedUsersFilter = {
+  $or: [
+    { isVerified: true },
+    // Backward compatibility for older records that pre-date isVerified
+    { isVerified: { $exists: false }, "otp.value": null },
+  ],
+};
+
 const listUsers = async (req, res) => {
-  const users = await UserModel.find()
+  const users = await UserModel.find(verifiedUsersFilter)
     .select("-password -otp")
     .sort({ createdAt: -1 });
   res.status(200).json({ users });
@@ -105,7 +113,7 @@ const getActivityLog = async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(limit),
 
-      UserModel.find()
+      UserModel.find(verifiedUsersFilter)
         .select("name email role createdAt")
         .sort({ createdAt: -1 })
         .limit(10),
