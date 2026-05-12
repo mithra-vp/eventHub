@@ -71,7 +71,12 @@ const Signup = ({ isModal = false }) => {
         } catch (err) {
             const status = err.response?.status;
             const message = err.response?.data?.message || "Signup failed!";
+            const fallbackCode = err.response?.data?.emailFallbackCode;
             toast.error(message);
+            if (fallbackCode) {
+                // Helps quickly identify deployed mailer issues without opening backend logs.
+                console.error("Signup email delivery fallback:", fallbackCode);
+            }
             // If the email already exists (verified), guide user to login
             if (status === 409) {
                 sessionStorage.removeItem("pendingSignupEmail");

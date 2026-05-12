@@ -5,76 +5,67 @@ const UserModel = require("../models/userModel"); // Ensure the path and case ma
 
 const trimEnv = (key) => (process.env[key] || "").toString().trim();
 
-const getMailerConfig = () => {
-  const smtpHost = trimEnv("SMTP_HOST");
-  const smtpUser = trimEnv("SMTP_USER");
-  const smtpPass = trimEnv("SMTP_PASS");
-  const connectionTimeout = Number.parseInt(trimEnv("SMTP_CONNECTION_TIMEOUT") || "15000", 10);
-  const greetingTimeout = Number.parseInt(trimEnv("SMTP_GREETING_TIMEOUT") || "10000", 10);
-  const socketTimeout = Number.parseInt(trimEnv("SMTP_SOCKET_TIMEOUT") || "20000", 10);
-  const dnsTimeout = Number.parseInt(trimEnv("SMTP_DNS_TIMEOUT") || "10000", 10);
-
-  if (smtpHost && smtpUser && smtpPass) {
-    const smtpPort = Number.parseInt(trimEnv("SMTP_PORT") || "587", 10);
-    const smtpSecureRaw = trimEnv("SMTP_SECURE").toLowerCase();
-    const smtpSecure = smtpSecureRaw ? smtpSecureRaw === "true" : smtpPort === 465;
-
-    return {
-      transport: {
-        host: smtpHost,
-        port: Number.isFinite(smtpPort) ? smtpPort : 587,
-        secure: smtpSecure,
-        connectionTimeout,
-        greetingTimeout,
-        socketTimeout,
-        dnsTimeout,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      },
-      from: trimEnv("MAIL_FROM") || smtpUser,
-    };
-  }
-
+const getEmailConfig = () => {
+  const emailProvider = trimEnv("EMAIL_PROVIDER").toLowerCase();
   const gmailUser = trimEnv("GMAIL_USER");
   const gmailPass = trimEnv("GMAIL_PASS");
+  const gmailClientId = trimEnv("GMAIL_CLIENT_ID");
+  const gmailClientSecret = trimEnv("GMAIL_CLIENT_SECRET");
+  const gmailRefreshToken = trimEnv("GMAIL_REFRESH_TOKEN");
+  const connectionTimeout = Number.parseInt(trimEnv("EMAIL_CONNECTION_TIMEOUT") || "15000", 10);
+  const greetingTimeout = Number.parseInt(trimEnv("EMAIL_GREETING_TIMEOUT") || "10000", 10);
+  const socketTimeout = Number.parseInt(trimEnv("EMAIL_SOCKET_TIMEOUT") || "20000", 10);
+  const dnsTimeout = Number.parseInt(trimEnv("EMAIL_DNS_TIMEOUT") || "10000", 10);
+  const fromEmail = trimEnv("EMAIL_FROM") || trimEnv("MAIL_FROM") || gmailUser;
+  const fromName = trimEnv("EMAIL_FROM_NAME");
 
-  if (gmailUser && gmailPass) {
-    return {
-      transport: {
-        host: "smtp.gmail.com",
-        port: 465,
-        secure: true,
-        connectionTimeout,
-        greetingTimeout,
-        socketTimeout,
-        dnsTimeout,
-        auth: {
-          user: gmailUser,
-          pass: gmailPass,
-        },
-      },
-      from: trimEnv("MAIL_FROM") || gmailUser,
-    };
-  }
+  const oauthReady = Boolean(
+    gmailUser && gmailClientId && gmailClientSecret && gmailRefreshToken,
+  );
+  const appPasswordReady = Boolean(gmailUser && gmailPass);
 
-  return null;
+  if (!oauthReady && !appPasswordReady) return null;
+
+  const auth =
+    emailProvider === "gmail_api" && oauthReady
+      ? {
+        type: "OAuth2",
+        user: gmailUser,
+        clientId: gmailClientId,
+        clientSecret: gmailClientSecret,
+        refreshToken: gmailRefreshToken,
+      }
+      : {
+        user: gmailUser,
+        pass: gmailPass,
+      };
+
+  return {
+    transport: {
+      service: "gmail",
+      connectionTimeout,
+      greetingTimeout,
+      socketTimeout,
+      dnsTimeout,
+      auth,
+    },
+    from: fromName ? `"${fromName}" <${fromEmail}>` : fromEmail,
+  };
 };
 
 const sendMail = async ({ to, subject, text }) => {
-  const mailerConfig = getMailerConfig();
-  if (!mailerConfig) {
+  const emailConfig = getEmailConfig();
+  if (!emailConfig) {
     const err = new Error(
-      "Email service is not configured. Set SMTP_HOST/SMTP_USER/SMTP_PASS (recommended) or GMAIL_USER/GMAIL_PASS.",
+      "Email service is not configured. Set Gmail credentials in environment variables.",
     );
     err.code = "EMAIL_NOT_CONFIGURED";
     throw err;
   }
 
-  const transporter = nodemailer.createTransport(mailerConfig.transport);
+  const transporter = nodemailer.createTransport(emailConfig.transport);
   return transporter.sendMail({
-    from: mailerConfig.from,
+    from: emailConfig.from,
     to,
     subject,
     text,
@@ -100,20 +91,48 @@ const generateOtp = () => {
 const handleEmailFailure = (res, error) => {
   const code = error?.code;
   const message = error?.message || "Email delivery failed";
+  const responseCode = error?.responseCode;
+  const response = error?.response;
 
   // eslint-disable-next-line no-console
-  console.error("Email send failed:", { code, message });
+  console.error("Email send failed:", { code, message, responseCode, response });
 
   if (code === "EMAIL_NOT_CONFIGURED") {
     return res.status(503).json({
       message:
-        "Signup email service is not configured on server. Please configure SMTP/Gmail env vars and redeploy.",
+        "Signup email service is not configured on server. Configure Gmail app password or Gmail API OAuth credentials and redeploy.",
+      emailFallbackCode: "config_missing",
+    });
+  }
+
+  if (code === "EAUTH" || code === "ENOAUTH" || code === "EOAUTH2") {
+    return res.status(503).json({
+      message:
+        "Email authentication failed on server. Update Gmail credentials and redeploy.",
+      emailFallbackCode: "auth_failed",
+    });
+  }
+
+  if (code === "ETIMEDOUT") {
+    return res.status(503).json({
+      message:
+        "Email provider timeout from server. Please retry in a moment.",
+      emailFallbackCode: "timeout",
+    });
+  }
+
+  if (code === "ECONNECTION" || code === "ESOCKET" || code === "EDNS" || code === "ETLS") {
+    return res.status(503).json({
+      message:
+        "Server could not connect to Gmail. Check network/firewall/TLS and retry.",
+      emailFallbackCode: "connection_failed",
     });
   }
 
   return res.status(503).json({
     message:
       "Could not send OTP email right now. Please try again in a moment or contact support.",
+    emailFallbackCode: "delivery_failed",
   });
 };
 
