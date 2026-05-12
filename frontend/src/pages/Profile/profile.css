@@ -139,10 +139,25 @@
   transition: var(--eh-transition);
 }
 
+.profile-form-group input::placeholder {
+  color: var(--eh-muted);
+  opacity: 0.9;
+}
+
 .profile-form-group input:focus {
   border-color: var(--eh-primary);
   box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1);
   outline: none;
+}
+
+/* Keep autofill text visible in dark mode */
+.profile-form-group input:-webkit-autofill,
+.profile-form-group input:-webkit-autofill:hover,
+.profile-form-group input:-webkit-autofill:focus,
+.profile-form-group input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--eh-text) !important;
+  caret-color: var(--eh-text);
+  box-shadow: 0 0 0 1000px var(--eh-surface-2) inset !important;
 }
 
 .input-disabled {
@@ -160,6 +175,14 @@
   color: var(--eh-muted);
   margin-top: 6px;
   font-weight: 600;
+}
+
+:root[data-theme="dark"] .profile-form-group input {
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+:root[data-theme="dark"] .profile-form-group input:focus {
+  box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.2);
 }
 
 @media (max-width: 860px) {
