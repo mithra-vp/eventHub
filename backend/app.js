@@ -62,6 +62,9 @@ const isAllowedOrigin = (origin) => {
 
     if (protocol !== "https:") return false;
 
+    // Allow Vercel-hosted frontend domains by default.
+    if (hostname.endsWith(".vercel.app")) return true;
+
     // Backward-compatible default: allow this project's Vercel URLs.
     if (hostname === "event-hub-hjic.vercel.app") return true;
     if (hostname.startsWith("event-hub-hjic-") && hostname.endsWith(".vercel.app")) return true;
