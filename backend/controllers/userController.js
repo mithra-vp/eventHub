@@ -17,10 +17,30 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
+    const currentUser = await UserModel.findById(req.user._id);
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     const updates = {};
 
     if (typeof req.body?.name === "string") updates.name = req.body.name.trim();
     if (typeof req.body?.phone === "string") updates.phone = req.body.phone.trim();
+    if (typeof req.body?.email === "string") {
+      const normalizedEmail = req.body.email.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(normalizedEmail)) {
+        return res.status(400).json({ message: "Invalid email" });
+      }
+
+      if (normalizedEmail !== (currentUser.email || "").toLowerCase()) {
+        const existing = await UserModel.findOne({ email: normalizedEmail }).select("_id");
+        if (existing && existing._id.toString() !== currentUser._id.toString()) {
+          return res.status(409).json({ message: "Email already exists" });
+        }
+      }
+      updates.email = normalizedEmail;
+    }
 
     if (req.file?.path) {
       updates.avatarUrl = req.file.path;
@@ -87,4 +107,3 @@ module.exports = {
   toggleFavorite,
   getFavorites,
 };
-

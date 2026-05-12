@@ -8,13 +8,13 @@ import { FiCamera, FiUser, FiPhone, FiMail, FiSave } from "react-icons/fi";
 const Profile = () => {
   const { user, refresh, login } = useAuth();
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "" });
   const [avatarFile, setAvatarFile] = useState(null);
   const [preview, setPreview] = useState(null);
 
   useEffect(() => {
     if (!user) return;
-    setForm({ name: user.name || "", phone: user.phone || "" });
+    setForm({ name: user.name || "", phone: user.phone || "", email: user.email || "" });
     setPreview(user.avatarUrl || null);
   }, [user]);
 
@@ -28,11 +28,19 @@ const Profile = () => {
 
   const onSave = async (e) => {
     e.preventDefault();
+    const normalizedEmail = (form.email || "").trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      toast.error("Enter a valid email address.");
+      return;
+    }
+
     setSaving(true);
     try {
       const data = new FormData();
       data.append("name", form.name);
       data.append("phone", form.phone);
+      data.append("email", normalizedEmail);
       if (avatarFile) data.append("avatar", avatarFile);
 
       const res = await api.put("/users/me", data);
@@ -84,8 +92,15 @@ const Profile = () => {
 
             <div className="profile-form-group">
               <label><FiMail size={14} /> Email Address</label>
-              <input value={user?.email || ""} readOnly className="input-disabled" />
-              <span className="input-hint">Email cannot be changed.</span>
+              <input
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={onChange}
+                placeholder="Enter your email address"
+                required
+              />
+              <span className="input-hint">Use an active email you can access.</span>
             </div>
 
             <button className="eh-btn-nav" type="submit" disabled={saving} style={{width: '100%', marginTop: '12px', justifyContent: 'center'}}>
