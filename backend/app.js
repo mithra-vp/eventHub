@@ -16,12 +16,25 @@ const app = express();
 connect_db();
 const allowAllCors = (process.env.ALLOW_ALL_CORS || "").toLowerCase() === "true";
 
-const exactAllowedOrigins = new Set([
+const parseCsv = (value) =>
+  (value || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+const defaultAllowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:5175",
   "https://event-hub-hjic.vercel.app",
-]);
+];
+
+const envAllowedOrigins = parseCsv(process.env.CORS_ORIGINS);
+const exactAllowedOrigins = new Set([...defaultAllowedOrigins, ...envAllowedOrigins]);
+
+const envAllowedHostSuffixes = parseCsv(process.env.CORS_ALLOWED_HOST_SUFFIXES)
+  .map((s) => s.toLowerCase())
+  .filter(Boolean);
 
 const isAllowedOrigin = (origin) => {
   if (allowAllCors) return true;
@@ -30,12 +43,19 @@ const isAllowedOrigin = (origin) => {
 
   try {
     const { hostname, protocol } = new URL(origin);
+
+    // Always allow localhost dev origins on any port
+    if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(hostname)) return true;
+
     if (protocol !== "https:") return false;
 
-    // Allow all Vercel deployment URLs for this project:
-    // event-hub-hjic.vercel.app and event-hub-hjic-*.vercel.app
+    // Backward-compatible default: allow this project's Vercel URLs.
     if (hostname === "event-hub-hjic.vercel.app") return true;
     if (hostname.startsWith("event-hub-hjic-") && hostname.endsWith(".vercel.app")) return true;
+
+    // Deployment-safe extension: allow custom host suffixes via env
+    // Example: CORS_ALLOWED_HOST_SUFFIXES=.vercel.app,.netlify.app
+    if (envAllowedHostSuffixes.some((suffix) => hostname.endsWith(suffix))) return true;
   } catch (_) {
     return false;
   }

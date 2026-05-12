@@ -373,16 +373,34 @@ const logout = async (req, res) => {
 };
 
 const me = async (req, res) => {
-  res.status(200).json({
-    user: {
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-      role: req.user.role,
-      avatarUrl: req.user.avatarUrl || null,
-      phone: req.user.phone || "",
-    },
-  });
+  try {
+    const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+
+    // Logged-out is not an error for this endpoint; return a neutral auth state.
+    if (!token) {
+      return res.status(200).json({ user: null });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_PRIVATE_KEY);
+    const user = await UserModel.findById(decoded.id || decoded._id).select("-password");
+
+    if (!user) {
+      return res.status(200).json({ user: null });
+    }
+
+    return res.status(200).json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatarUrl: user.avatarUrl || null,
+        phone: user.phone || "",
+      },
+    });
+  } catch (_) {
+    return res.status(200).json({ user: null });
+  }
 };
 // 4. FORGOT PASSWORD
 const forgotPassword = async (req, res) => {

@@ -13,7 +13,7 @@ authRoute.post('/verify-otp', authController.verifyOTP);
 
 authRoute.post('/login', authController.login);
 authRoute.post('/logout', authController.logout);
-authRoute.get('/me', protect, authController.me);
+authRoute.get('/me', authController.me);
 
 authRoute.post('/forgot-password', authController.forgotPassword);
 authRoute.post('/verify-reset-otp', authController.verifyResetOTP);
