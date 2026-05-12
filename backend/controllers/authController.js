@@ -1,75 +1,131 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
 const UserModel = require("../models/userModel"); // Ensure the path and case match your file
 
 const trimEnv = (key) => (process.env[key] || "").toString().trim();
 
 const getEmailConfig = () => {
-  const emailProvider = trimEnv("EMAIL_PROVIDER").toLowerCase();
   const gmailUser = trimEnv("GMAIL_USER");
-  const gmailPass = trimEnv("GMAIL_PASS");
   const gmailClientId = trimEnv("GMAIL_CLIENT_ID");
   const gmailClientSecret = trimEnv("GMAIL_CLIENT_SECRET");
   const gmailRefreshToken = trimEnv("GMAIL_REFRESH_TOKEN");
-  const connectionTimeout = Number.parseInt(trimEnv("EMAIL_CONNECTION_TIMEOUT") || "15000", 10);
-  const greetingTimeout = Number.parseInt(trimEnv("EMAIL_GREETING_TIMEOUT") || "10000", 10);
-  const socketTimeout = Number.parseInt(trimEnv("EMAIL_SOCKET_TIMEOUT") || "20000", 10);
-  const dnsTimeout = Number.parseInt(trimEnv("EMAIL_DNS_TIMEOUT") || "10000", 10);
   const fromEmail = trimEnv("EMAIL_FROM") || trimEnv("MAIL_FROM") || gmailUser;
   const fromName = trimEnv("EMAIL_FROM_NAME");
 
-  const oauthReady = Boolean(
-    gmailUser && gmailClientId && gmailClientSecret && gmailRefreshToken,
-  );
-  const appPasswordReady = Boolean(gmailUser && gmailPass);
-
-  if (!oauthReady && !appPasswordReady) return null;
-
-  const auth =
-    emailProvider === "gmail_api" && oauthReady
-      ? {
-        type: "OAuth2",
-        user: gmailUser,
-        clientId: gmailClientId,
-        clientSecret: gmailClientSecret,
-        refreshToken: gmailRefreshToken,
-      }
-      : {
-        user: gmailUser,
-        pass: gmailPass,
-      };
+  if (!gmailUser || !gmailClientId || !gmailClientSecret || !gmailRefreshToken) {
+    return null;
+  }
 
   return {
-    transport: {
-      service: "gmail",
-      connectionTimeout,
-      greetingTimeout,
-      socketTimeout,
-      dnsTimeout,
-      auth,
-    },
+    gmailUser,
+    gmailClientId,
+    gmailClientSecret,
+    gmailRefreshToken,
     from: fromName ? `"${fromName}" <${fromEmail}>` : fromEmail,
   };
+};
+
+const mapNetworkErrorCode = (error) => {
+  const known = error?.code || error?.cause?.code;
+  if (!known) return "ECONNECTION";
+  return known;
+};
+
+const toBase64Url = (input) =>
+  Buffer.from(input)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+
+const getGmailAccessToken = async (emailConfig) => {
+  let response;
+  try {
+    response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: emailConfig.gmailClientId,
+        client_secret: emailConfig.gmailClientSecret,
+        refresh_token: emailConfig.gmailRefreshToken,
+        grant_type: "refresh_token",
+      }),
+    });
+  } catch (error) {
+    const err = new Error("Could not reach Google OAuth token endpoint.");
+    err.code = mapNetworkErrorCode(error);
+    throw err;
+  }
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok || !payload?.access_token) {
+    const err = new Error(payload?.error_description || payload?.error || "Failed to get Gmail access token.");
+    err.code = response.status === 401 || response.status === 403 ? "EOAUTH2" : "EOAUTH2_TOKEN";
+    err.responseCode = response.status;
+    err.response = payload;
+    throw err;
+  }
+
+  return payload.access_token;
 };
 
 const sendMail = async ({ to, subject, text }) => {
   const emailConfig = getEmailConfig();
   if (!emailConfig) {
     const err = new Error(
-      "Email service is not configured. Set Gmail credentials in environment variables.",
+      "Email service is not configured. Set Gmail API OAuth credentials in environment variables.",
     );
     err.code = "EMAIL_NOT_CONFIGURED";
     throw err;
   }
 
-  const transporter = nodemailer.createTransport(emailConfig.transport);
-  return transporter.sendMail({
-    from: emailConfig.from,
-    to,
-    subject,
+  const accessToken = await getGmailAccessToken(emailConfig);
+  const mimeMessage = [
+    `From: ${emailConfig.from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=UTF-8",
+    "",
     text,
-  });
+  ].join("\r\n");
+
+  const raw = toBase64Url(mimeMessage);
+
+  let response;
+  try {
+    response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ raw }),
+    });
+  } catch (error) {
+    const err = new Error("Could not reach Gmail API send endpoint.");
+    err.code = mapNetworkErrorCode(error);
+    throw err;
+  }
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const err = new Error(payload?.error?.message || "Gmail API failed to send email.");
+    if (response.status === 401 || response.status === 403) {
+      err.code = "EOAUTH2";
+    } else if (response.status === 408 || response.status === 429 || response.status >= 500) {
+      err.code = "ETIMEDOUT";
+    } else {
+      err.code = "EMAIL_DELIVERY_FAILED";
+    }
+    err.responseCode = response.status;
+    err.response = payload;
+    throw err;
+  }
+
+  return payload;
 };
 
 const normalizeEmail = (email) => (email || "").toString().trim().toLowerCase();
@@ -105,7 +161,7 @@ const handleEmailFailure = (res, error) => {
     });
   }
 
-  if (code === "EAUTH" || code === "ENOAUTH" || code === "EOAUTH2") {
+  if (code === "EAUTH" || code === "ENOAUTH" || code === "EOAUTH2" || code === "EOAUTH2_TOKEN") {
     return res.status(503).json({
       message:
         "Email authentication failed on server. Update Gmail credentials and redeploy.",
@@ -124,7 +180,7 @@ const handleEmailFailure = (res, error) => {
   if (code === "ECONNECTION" || code === "ESOCKET" || code === "EDNS" || code === "ETLS") {
     return res.status(503).json({
       message:
-        "Server could not connect to Gmail. Check network/firewall/TLS and retry.",
+        "Server could not connect to Google email endpoints. Check network/firewall and retry.",
       emailFallbackCode: "connection_failed",
     });
   }
@@ -570,3 +626,4 @@ module.exports = {
   resetPassword,
   uploadFile,
 };
+
