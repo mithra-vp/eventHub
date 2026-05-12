@@ -9,6 +9,10 @@ const getMailerConfig = () => {
   const smtpHost = trimEnv("SMTP_HOST");
   const smtpUser = trimEnv("SMTP_USER");
   const smtpPass = trimEnv("SMTP_PASS");
+  const connectionTimeout = Number.parseInt(trimEnv("SMTP_CONNECTION_TIMEOUT") || "15000", 10);
+  const greetingTimeout = Number.parseInt(trimEnv("SMTP_GREETING_TIMEOUT") || "10000", 10);
+  const socketTimeout = Number.parseInt(trimEnv("SMTP_SOCKET_TIMEOUT") || "20000", 10);
+  const dnsTimeout = Number.parseInt(trimEnv("SMTP_DNS_TIMEOUT") || "10000", 10);
 
   if (smtpHost && smtpUser && smtpPass) {
     const smtpPort = Number.parseInt(trimEnv("SMTP_PORT") || "587", 10);
@@ -20,6 +24,10 @@ const getMailerConfig = () => {
         host: smtpHost,
         port: Number.isFinite(smtpPort) ? smtpPort : 587,
         secure: smtpSecure,
+        connectionTimeout,
+        greetingTimeout,
+        socketTimeout,
+        dnsTimeout,
         auth: {
           user: smtpUser,
           pass: smtpPass,
@@ -35,7 +43,13 @@ const getMailerConfig = () => {
   if (gmailUser && gmailPass) {
     return {
       transport: {
-        service: "gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        connectionTimeout,
+        greetingTimeout,
+        socketTimeout,
+        dnsTimeout,
         auth: {
           user: gmailUser,
           pass: gmailPass,
