@@ -50,7 +50,7 @@ const Login = ({ isModal = false }) => {
       toast.success("Login Successful!");
       setTimeout(() => {
         if (res.data.user?.role === "admin") navigate("/dashboard");
-        else navigate("/events");
+        else navigate("/");
       }, 1200);
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed");
