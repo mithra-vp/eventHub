@@ -13,7 +13,10 @@ const verifiedUsersFilter = {
 };
 
 const listUsers = async (req, res) => {
-  const users = await UserModel.find(verifiedUsersFilter)
+  const users = await UserModel.find({
+    ...verifiedUsersFilter,
+    role: { $ne: "admin" },
+  })
     .select("-password -otp")
     .sort({ createdAt: -1 });
   res.status(200).json({ users });
