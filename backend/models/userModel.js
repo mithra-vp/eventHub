@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-  const schema = new mongoose.Schema(
+const schema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -45,12 +45,6 @@ const mongoose = require("mongoose");
       enum: ["user", "admin"],
       default: "user",
     },
-    favorites: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Event",
-      },
-    ],
   },
   {
     timestamps: true,
