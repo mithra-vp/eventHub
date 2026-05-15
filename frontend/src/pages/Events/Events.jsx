@@ -23,8 +23,6 @@ const Events = () => {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      // Only show full loading on initial mount or category change
-      // For searching, we update in-background for a smoother feel
       if (events.length === 0) setLoading(true);
 
       try {
@@ -44,7 +42,7 @@ const Events = () => {
 
     const timer = setTimeout(() => {
       fetchEvents();
-    }, 600); // Increased debounce to 600ms for smoother typing
+    }, 600); 
 
     return () => clearTimeout(timer);
   }, [search, category]);
@@ -66,7 +64,6 @@ const Events = () => {
     fetchCategories();
   }, []);
 
-  // Fetching is now handled by the useEffect with API query parameters
   const filtered = events;
 
   const openDetails = async (event) => {
@@ -184,7 +181,6 @@ const Events = () => {
 
       <div className="events-container">
         {filtered.length > 0 ? (
-          // Chunking logic: slice into groups of 3
           Array.from({ length: Math.ceil(filtered.length / 3) }, (_, i) =>
             filtered.slice(i * 3, i * 3 + 3)
           ).map((chunk, chunkIdx) => (

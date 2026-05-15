@@ -2,7 +2,6 @@ const jwt = require("jsonwebtoken");
 const UserModel = require("../models/userModel");
 
 const protect = async (req, res, next) => {
-  // 1. Get token from cookies (sent via withCredentials)
   const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
 
   if (!token) {
@@ -12,8 +11,7 @@ const protect = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_PRIVATE_KEY);
     
-    // 2. Attach user to request so your controller can use req.user._id
-    // We check both id and _id to be safe
+
     const user = await UserModel.findById(decoded.id || decoded._id).select("-password");
 
     if (!user) {

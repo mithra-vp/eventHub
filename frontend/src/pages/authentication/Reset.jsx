@@ -15,18 +15,15 @@ const Reset = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Get email and otp passed from the VerifyResetOTP page
   const email = location.state?.email || "";
   const otp = location.state?.otp || "";
 
-  // Your specific 6-character alphanumeric regex
   const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     
-    // Validation for the new password field
     if (name === "newPassword") {
       if (!passwordRegex.test(value)) {
         setError("Min 6 chars, at least 1 letter and 1 number.");
@@ -60,7 +57,6 @@ const Reset = () => {
 
       toast.success(res.data.message || "Password updated successfully!");
       
-      // Redirect to login after success
       setTimeout(() => navigate("/login"), 800);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to reset password.");

@@ -87,7 +87,6 @@ const CalendarPage = () => {
     <div className="cal-page">
       <div className="cal-container">
         <div className="cal-layout">
-          {/* Main Calendar View */}
           <div className="cal-main-side">
             <div className="cal-card">
               <div className="cal-header-top">
@@ -148,7 +147,6 @@ const CalendarPage = () => {
             </div>
           </div>
 
-          {/* Side List View - Only shows when a date is selected */}
           {selectedDate && (
             <div className="cal-list-side">
               <div className="cal-card">

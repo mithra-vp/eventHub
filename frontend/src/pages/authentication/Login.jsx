@@ -13,7 +13,6 @@ const Login = ({ isModal = false }) => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  // Define your Regex patterns
   const patterns = {
     email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
     password: /^[A-Za-z\d]{6,}$/ 
@@ -23,7 +22,6 @@ const Login = ({ isModal = false }) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
 
-    // Validate as the user types
     if (patterns[name]) {
       const isValid = patterns[name].test(value);
       setErrors({
@@ -37,7 +35,6 @@ const Login = ({ isModal = false }) => {
     e.preventDefault();
     if (submitting) return;
     
-    // Final check before sending to backend
     if (errors.email || errors.password) {
       toast.error("Please fix the errors before submitting");
       return;

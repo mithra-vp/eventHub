@@ -7,7 +7,6 @@ const ActivityLogModel = require("../models/activityLogModel");
 const verifiedUsersFilter = {
   $or: [
     { isVerified: true },
-    // Backward compatibility for older records that pre-date isVerified
     { isVerified: { $exists: false }, "otp.value": null },
   ],
 };

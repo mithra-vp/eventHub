@@ -14,13 +14,11 @@ const Signup = ({ isModal = false }) => {
         role: 'user'
     });
 
-    // State to track validation errors
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
 
     const navigate = useNavigate();
 
-    // Regex Patterns
     const patterns = {
         name: /^[a-zA-Z\s]{3,30}$/, // 3-30 chars, letters and spaces only
         email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
@@ -31,7 +29,6 @@ const Signup = ({ isModal = false }) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
 
-        // Real-time validation
         if (patterns[name]) {
             const isValid = patterns[name].test(value);
             let errorMsg = "";
@@ -50,7 +47,6 @@ const Signup = ({ isModal = false }) => {
         e.preventDefault();
         if (submitting) return;
 
-        // Check if there are any error messages before sending
         if (errors.name || errors.email || errors.password) {
             toast.error("Please fix the errors in the form.");
             return;
@@ -74,10 +70,8 @@ const Signup = ({ isModal = false }) => {
             const fallbackCode = err.response?.data?.emailFallbackCode;
             toast.error(message);
             if (fallbackCode) {
-                // Helps quickly identify deployed mailer issues without opening backend logs.
                 console.error("Signup email delivery fallback:", fallbackCode);
             }
-            // If the email already exists (verified), guide user to login
             if (status === 409) {
                 sessionStorage.removeItem("pendingSignupEmail");
                 setTimeout(() => navigate('/login'), 900);

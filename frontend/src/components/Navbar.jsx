@@ -34,7 +34,6 @@ const Navbar = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    // Sync initial theme from Redux state to DOM (case: Redux initialized from cookie)
     if (theme === "dark") document.documentElement.dataset.theme = "dark";
     else document.documentElement.removeAttribute("data-theme");
   }, [theme]);

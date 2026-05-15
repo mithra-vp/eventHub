@@ -46,7 +46,6 @@ const VerifyOTP = () => {
     newOtp[index] = element.value;
     setOtp(newOtp);
 
-    // Focus next input
     if (element.nextSibling && element.value !== "") {
       element.nextSibling.focus();
     }
@@ -71,7 +70,6 @@ const VerifyOTP = () => {
     });
     setOtp(newOtp);
 
-    // Focus appropriate field
     const inputs = document.querySelectorAll(".otp-field");
     const nextIndex = Math.min(data.length, 5);
     inputs[nextIndex]?.focus();

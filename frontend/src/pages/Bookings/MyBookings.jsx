@@ -61,7 +61,6 @@ const MyBookings = () => {
       const b = bookings.find(x => x._id === location.state.openTicketId);
       if (b && b.status?.toLowerCase() === "paid") {
         setTicketBooking(b);
-        // Clear state so it doesn't pop up again on refresh
         window.history.replaceState({}, document.title);
       }
     }

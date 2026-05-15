@@ -162,7 +162,6 @@ const handleEmailFailure = (res, error) => {
   const responseCode = error?.responseCode;
   const response = error?.response;
 
-  // eslint-disable-next-line no-console
   console.error("Email send failed:", { code, message, responseCode, response });
 
   if (code === "EMAIL_NOT_CONFIGURED") {
@@ -224,11 +223,9 @@ const findUserByEmail = async (email) => {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail) return null;
 
-  // Fast path: exact match on normalized email
   const exact = await UserModel.findOne({ email: normalizedEmail });
   if (exact) return exact;
 
-  // Backward-compat: handle older data with uppercase/spaces in email
   return UserModel.findOne({
     email: { $regex: new RegExp(`^${escapeRegExp(normalizedEmail)}$`, "i") },
   });
@@ -241,7 +238,6 @@ const isUserVerified = (user) => {
   return !user.otp?.value;
 };
 
-// Re-send signup OTP (for existing, unverified users)
 const resendSignupOTP = async (req, res) => {
   try {
     const normalizedEmail = normalizeEmail(req.body?.email);
@@ -281,7 +277,6 @@ const resendSignupOTP = async (req, res) => {
   }
 };
 
-// 1. SIGNUP with OTP Generation
 const signup = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -355,7 +350,6 @@ const signup = async (req, res) => {
     res.status(201).json({ message: "OTP sent to email. Please verify." });
   } catch (error) {
     if (error?.code === 11000) {
-      // Duplicate email (race condition). Try to resend OTP if the user isn't verified.
       try {
         const normalizedEmail = normalizeEmail(req.body?.email);
         const existingUser = await findUserByEmail(normalizedEmail);
@@ -381,7 +375,6 @@ const signup = async (req, res) => {
           return res.status(200).json({ message: "OTP re-sent to email. Please verify." });
         }
       } catch (_) {
-        // Fall through to generic error response
       }
 
       return res.status(409).json({ message: "Email already exists" });
@@ -469,7 +462,6 @@ const login = async (req, res) => {
     }
 
     if (!ok) {
-      // eslint-disable-next-line no-console
       console.warn("Login failed: password mismatch", { email: normalizedEmail, looksHashed });
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -512,7 +504,6 @@ const me = async (req, res) => {
   try {
     const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
 
-    // Logged-out is not an error for this endpoint; return a neutral auth state.
     if (!token) {
       return res.status(200).json({ user: null });
     }
@@ -580,18 +571,14 @@ const verifyResetOTP = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // --- FIX STARTS HERE ---
-    // 1. Access the nested 'otp.value' from your schema
-    // 2. Convert both to String to avoid "String vs Number" comparison errors
+
     if (!user.otp?.value || user.otp.value.toString() !== otp.toString()) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    // 3. Check 'otp.expire' from your schema
     if (user.otp.expire < Date.now()) {
       return res.status(400).json({ message: "OTP has expired. Please request a new one." });
     }
-    // --- FIX ENDS HERE ---
 
     res.status(200).json({
       success: true,

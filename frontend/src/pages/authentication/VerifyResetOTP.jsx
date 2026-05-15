@@ -11,7 +11,6 @@ const VerifyResetOTP = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Retrieve email from ForgotPass state
   const email = location.state?.email || "";
 
   const handleChange = (element, index) => {
@@ -21,7 +20,6 @@ const VerifyResetOTP = () => {
     newOtp[index] = element.value;
     setOtp(newOtp);
 
-    // Focus next input
     if (element.nextSibling && element.value !== "") {
       element.nextSibling.focus();
     }
@@ -46,7 +44,6 @@ const VerifyResetOTP = () => {
     });
     setOtp(newOtp);
 
-    // Focus appropriate field
     const inputs = document.querySelectorAll(".otp-field");
     const nextIndex = Math.min(data.length, 5);
     inputs[nextIndex]?.focus();
@@ -58,7 +55,6 @@ const VerifyResetOTP = () => {
     if (loading) return;
 
     const otpValue = otp.join("");
-    // Regex check: Ensure exactly 6 digits
     if (!/^\d{6}$/.test(otpValue)) {
       toast.error("Please enter a valid 6-digit OTP");
       return;
@@ -73,8 +69,6 @@ const VerifyResetOTP = () => {
 
       toast.success("Identity Verified!");
 
-      // IMPORTANT: Pass email and OTP to the final reset page
-      // so the backend knows which user is changing the password.
       setTimeout(() => {
         navigate("/reset-password", { state: { email, otp: otp.join("") } });
       }, 800);
@@ -134,4 +128,3 @@ const VerifyResetOTP = () => {
 export default VerifyResetOTP;
 
 
-//Event1@

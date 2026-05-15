@@ -57,20 +57,15 @@ const isAllowedOrigin = (origin) => {
   try {
     const { hostname, protocol } = new URL(normalizedOrigin);
 
-    // Always allow localhost dev origins on any port
     if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(hostname)) return true;
 
     if (protocol !== "https:") return false;
 
-    // Allow Vercel-hosted frontend domains by default.
     if (hostname.endsWith(".vercel.app")) return true;
 
-    // Backward-compatible default: allow this project's Vercel URLs.
     if (hostname === "event-hub-hjic.vercel.app") return true;
     if (hostname.startsWith("event-hub-hjic-") && hostname.endsWith(".vercel.app")) return true;
 
-    // Deployment-safe extension: allow custom host suffixes via env
-    // Example: CORS_ALLOWED_HOST_SUFFIXES=.vercel.app,.netlify.app
     if (envAllowedHostSuffixes.some((suffix) => hostname.endsWith(suffix))) return true;
   } catch (_) {
     return false;

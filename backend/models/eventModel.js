@@ -15,7 +15,7 @@ const eventSchema = new mongoose.Schema(
       default: "Other"
     },
     price: { type: Number, required: true },
-    image: { type: String, required: false }, // Set to false until you add upload logic
+    image: { type: String, required: false },
     
     organizer: {
       type: mongoose.Schema.Types.ObjectId,

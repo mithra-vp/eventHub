@@ -14,8 +14,6 @@ export const AuthProvider = ({ children }) => {
       setUser(res.data.user);
     } catch (err) {
       const status = err?.response?.status;
-      // Avoid "sudden logout" on temporary network/backend issues:
-      // only clear the user when the server explicitly says unauthorized/forbidden.
       if (status === 401 || status === 403) {
         setUser(null);
       }

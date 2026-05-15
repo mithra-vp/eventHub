@@ -70,7 +70,6 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Event price too large for Razorpay" });
     }
 
-    // Razorpay receipt max length is 40 characters
     const receipt = `evt_${String(event._id).slice(-8)}_${Date.now().toString(36)}`;
 
     const orderResponse = await fetch("https://api.razorpay.com/v1/orders", {
@@ -92,7 +91,6 @@ const createOrder = async (req, res) => {
 
     const orderJson = await orderResponse.json();
     if (!orderResponse.ok) {
-      // eslint-disable-next-line no-console
       console.error("Razorpay order creation failed:", orderResponse.status, orderJson);
       return res.status(502).json({
         message: "Razorpay order creation failed",
@@ -153,7 +151,6 @@ const verifyPayment = async (req, res) => {
       .digest("hex");
 
     if (expected !== razorpay_signature) {
-      // eslint-disable-next-line no-console
       console.error("Razorpay signature mismatch:", {
         bookingId,
         razorpay_order_id,
@@ -200,9 +197,6 @@ const cancelAndRefund = async (req, res) => {
       });
     }
 
-    // Note: allow cancellation/refund even if the event date has passed (business rule can be tightened later).
-
-    // If payment never completed, allow simple cancellation (no refund)
     if (booking.status === "created") {
       booking.status = "cancelled";
       await booking.save();
@@ -287,7 +281,7 @@ const cancelAndRefund = async (req, res) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          amount: amountPaise, // full refund
+          amount: amountPaise,
           notes: {
             bookingId: String(booking._id),
             eventId: String(booking.event?._id || ""),
@@ -299,7 +293,6 @@ const cancelAndRefund = async (req, res) => {
 
     const refundJson = await refundResp.json();
     if (!refundResp.ok) {
-      // eslint-disable-next-line no-console
       console.error("Razorpay refund failed:", refundResp.status, refundJson);
       booking.status = "refund_failed";
       await booking.save();
@@ -322,7 +315,6 @@ const cancelAndRefund = async (req, res) => {
     booking.refundedAt = new Date();
     await booking.save();
 
-    // Remove user from event attendees if present
     if (booking.event) {
       const event = await EventModel.findById(booking.event._id);
       if (event) {

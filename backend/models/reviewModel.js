@@ -31,7 +31,6 @@ const reviewSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// One review per user per event
 reviewSchema.index({ user: 1, event: 1 }, { unique: true });
 
 const ReviewModel = mongoose.model("Review", reviewSchema);

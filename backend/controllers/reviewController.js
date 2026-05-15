@@ -9,7 +9,6 @@ const parseLimit = (value, fallback) => {
   return Math.min(n, 50);
 };
 
-// USER ONLY: create a review (only if user has a paid booking for the event)
 const createReview = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
@@ -50,7 +49,6 @@ const createReview = async (req, res) => {
     const populated = await ReviewModel.findById(created._id).populate("user", "name avatarUrl");
     return res.status(201).json({ message: "Review added", review: populated });
   } catch (error) {
-    // duplicate key (one review per user per event)
     if (error?.code === 11000) {
       return res.status(409).json({ message: "You already reviewed this event" });
     }
@@ -58,7 +56,6 @@ const createReview = async (req, res) => {
   }
 };
 
-// PUBLIC: list reviews for an event
 const getEventReviews = async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -76,7 +73,6 @@ const getEventReviews = async (req, res) => {
   }
 };
 
-// PUBLIC: latest reviews for Home carousel
 const getLatestReviews = async (req, res) => {
   try {
     const limit = parseLimit(req.query.limit, 8);
@@ -92,7 +88,6 @@ const getLatestReviews = async (req, res) => {
   }
 };
 
-// PUBLIC: rating stats for an event (avg + count)
 const getEventRatingStats = async (req, res) => {
   try {
     const { eventId } = req.params;

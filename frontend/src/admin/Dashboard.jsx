@@ -405,7 +405,6 @@ const Dashboard = () => {
 
   return (
     <div className={`dashboard-container ${sidebarOpen ? 'sidebar-open' : ''}`}>
-      {/* Mobile Header */}
       <div className="admin-mobile-head">
         <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
           {sidebarOpen ? <FiX size={24} /> : <FiMenu size={24} />}
@@ -445,7 +444,6 @@ const Dashboard = () => {
           <p>Welcome back! Here's what's happening with EventHub today.</p>
         </header>
 
-        {/* Stats Cards */}
         <section className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon events"><FiCalendar /></div>

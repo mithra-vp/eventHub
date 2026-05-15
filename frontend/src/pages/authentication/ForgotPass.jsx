@@ -9,7 +9,6 @@ const ForgotPass = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Simple 1-line regex for email validation
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
   const handleSubmit = async (e) => {
@@ -30,7 +29,6 @@ const ForgotPass = () => {
 
       toast.success(res.data.message || "Reset link sent!");
 
-      // FIX: Pass the email to the next route
       setTimeout(() => {
         navigate("/verify-reset-otp", { state: { email } });
       }, 800);

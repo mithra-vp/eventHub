@@ -72,7 +72,6 @@ const Home = () => {
 
   useEffect(() => {
     if (location.hash !== "#about") return;
-    // Let the route render before scrolling
     const id = setTimeout(() => {
       const el = document.getElementById("about");
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });

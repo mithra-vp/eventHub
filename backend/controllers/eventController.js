@@ -3,14 +3,12 @@ const EventModel = require("../models/eventModel");
 const normalizeCategory = (value) => {
   if (value === undefined || value === null) return value;
   const trimmed = String(value).trim();
-  // collapse multiple spaces to single space
   return trimmed.replace(/\s+/g, " ");
 };
 
 // --- ADMIN ONLY: Create a New Event ---
 const createEvent = async (req, res) => {
   try {
-    // Prevent accidental double-submits creating duplicates (short window)
     const now = Date.now();
     const windowMs = 2 * 60 * 1000; // 2 minutes
     const parsedDate = req.body?.date ? new Date(req.body.date) : null;
@@ -34,7 +32,6 @@ const createEvent = async (req, res) => {
       ...req.body,
       category: normalizeCategory(req.body?.category),
       organizer: req.user._id,
-      // CRITICAL: Multer-Cloudinary puts the URL in req.file.path
       image: req.file ? req.file.path : null 
     };
     
@@ -45,7 +42,6 @@ const createEvent = async (req, res) => {
   }
 };
 
-// --- PUBLIC: Get all unique categories ---
 const getEventCategories = async (req, res) => {
   try {
     const categories = await EventModel.distinct("category");
@@ -53,7 +49,6 @@ const getEventCategories = async (req, res) => {
       .map((c) => normalizeCategory(c))
       .filter((c) => typeof c === "string" && c.length > 0);
 
-    // unique + sort (case-insensitive)
     const unique = Array.from(new Set(clean.map((c) => c)));
     unique.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
@@ -63,7 +58,6 @@ const getEventCategories = async (req, res) => {
   }
 };
 
-// --- PUBLIC: Get All Events (Supports Search & Category Filter) ---
 const getAllEvents = async (req, res) => {
   try {
     const { title, category } = req.query;
@@ -119,7 +113,6 @@ const bookEvent = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Check if user already booked to prevent duplicates
     if (event.attendees.includes(req.user.id)) {
       return res
         .status(400)

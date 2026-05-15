@@ -22,7 +22,6 @@ const themeSlice = createSlice({
     toggleTheme: (state) => {
       state.mode = state.mode === 'dark' ? 'light' : 'dark';
       
-      // Sync with DOM and Cookies
       if (state.mode === 'dark') {
         document.documentElement.dataset.theme = 'dark';
       } else {
