@@ -28,9 +28,13 @@ const ForgotPass = () => {
       );
 
       toast.success(res.data.message || "Reset link sent!");
+      if (res.data?.debugOtp) {
+        sessionStorage.setItem("pendingResetOtp", String(res.data.debugOtp));
+        toast.info(`Development OTP: ${res.data.debugOtp}`);
+      }
 
       setTimeout(() => {
-        navigate("/verify-reset-otp", { state: { email } });
+        navigate("/verify-reset-otp", { state: { email, debugOtp: res.data?.debugOtp || "" } });
       }, 800);
     } catch (err) {
       toast.error(err.response?.data?.message || "Error");

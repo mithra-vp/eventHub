@@ -44,7 +44,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate("/");
   };
 
   const linkClass = ({ isActive }) => (isActive ? "eh-link active" : "eh-link");

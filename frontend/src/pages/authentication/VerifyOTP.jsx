@@ -21,9 +21,18 @@ const VerifyOTP = () => {
   const pendingSignupEmail = useMemo(() => {
     return (sessionStorage.getItem("pendingSignupEmail") || "").toLowerCase().trim();
   }, []);
+  const pendingSignupOtp = useMemo(() => {
+    return (location.state?.debugOtp || sessionStorage.getItem("pendingSignupOtp") || "").trim();
+  }, [location.state?.debugOtp]);
 
   const lockedEmail = pendingSignupEmail || email;
   const hasEmailMismatch = Boolean(pendingSignupEmail && email && pendingSignupEmail !== email);
+
+  useEffect(() => {
+    if (/^\d{6}$/.test(pendingSignupOtp)) {
+      setOtp(pendingSignupOtp.split(""));
+    }
+  }, [pendingSignupOtp]);
 
   useEffect(() => {
     if (!email) {
@@ -89,6 +98,7 @@ const VerifyOTP = () => {
       );
       toast.success(res.data?.message || "Signup successful. Please login.");
       sessionStorage.removeItem("pendingSignupEmail");
+      sessionStorage.removeItem("pendingSignupOtp");
       setTimeout(() => navigate("/login", { state: { email: lockedEmail } }), 800);
     } catch (err) {
       toast.error(err.response?.data?.message || "Verification failed");

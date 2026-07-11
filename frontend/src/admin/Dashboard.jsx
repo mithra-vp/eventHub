@@ -3,6 +3,11 @@ import './dash.css';
 import { api } from "../api/client.js";
 import { toast } from 'react-toastify';
 import EventFormModal from "./EventFormModal.jsx";
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from "../context/AuthContext.jsx";
+import { useSelector, useDispatch } from 'react-redux';
+import { toggleTheme } from "../redux/themeSlice";
+import { AiOutlineLogout } from "react-icons/ai";
 import {
   BarElement,
   CategoryScale,
@@ -14,7 +19,8 @@ import {
 import { Bar } from "react-chartjs-2";
 import { 
   FiCalendar, FiPlus, FiUsers, FiCreditCard, 
-  FiBarChart2, FiActivity, FiMenu, FiX, FiTrash2, FiEdit3, FiDownload 
+  FiBarChart2, FiActivity, FiMenu, FiX, FiTrash2, FiEdit3, FiDownload,
+  FiSun, FiMoon
 } from "react-icons/fi";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
@@ -125,6 +131,20 @@ const RevenueBars = ({ data }) => {
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const theme = useSelector((state) => state.theme.mode);
+  const { user, logout } = useAuth();
+
+  const handleToggleTheme = () => {
+    dispatch(toggleTheme());
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
+
   const EVENT_PAGE_SIZE_OPTIONS = [5, 10, 20];
   const [events, setEvents] = useState([]);
   const [eventPage, setEventPage] = useState(1);
@@ -435,6 +455,34 @@ const Dashboard = () => {
             <FiCreditCard className="sb-ic" /> Payments
           </button>
         </nav>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-footer-top">
+            <button
+              type="button"
+              className="sb-theme-btn"
+              onClick={handleToggleTheme}
+              aria-label="Toggle Theme"
+            >
+              {theme === "dark" ? <FiSun size={18} /> : <FiMoon size={18} />}
+            </button>
+            {user && (
+              <button onClick={handleLogout} className="sb-logout-btn" title="Logout">
+                <AiOutlineLogout size={20} />
+              </button>
+            )}
+          </div>
+          {user && (
+            <Link to="/profile" className="sb-user-pill">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name} />
+              ) : (
+                <div className="sb-user-init">{(user.name || "U")[0].toUpperCase()}</div>
+              )}
+              <span className="sb-user-name">{user.name}</span>
+            </Link>
+          )}
+        </div>
       </aside>
 
       {/* Main Content */}

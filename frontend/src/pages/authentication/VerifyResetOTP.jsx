@@ -12,6 +12,13 @@ const VerifyResetOTP = () => {
   const navigate = useNavigate();
 
   const email = location.state?.email || "";
+  const debugOtp = location.state?.debugOtp || sessionStorage.getItem("pendingResetOtp") || "";
+
+  React.useEffect(() => {
+    if (/^\d{6}$/.test(String(debugOtp))) {
+      setOtp(String(debugOtp).split(""));
+    }
+  }, [debugOtp]);
 
   const handleChange = (element, index) => {
     if (isNaN(element.value)) return false;
@@ -62,12 +69,13 @@ const VerifyResetOTP = () => {
 
     setLoading(true);
     try {
-      const res = await api.post(
+      await api.post(
         "/auth/verify-reset-otp",
         { email, otp: otp.join("") },
       );
 
       toast.success("Identity Verified!");
+      sessionStorage.removeItem("pendingResetOtp");
 
       setTimeout(() => {
         navigate("/reset-password", { state: { email, otp: otp.join("") } });
@@ -126,5 +134,3 @@ const VerifyResetOTP = () => {
 };
 
 export default VerifyResetOTP;
-
-

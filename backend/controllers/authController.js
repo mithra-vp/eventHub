@@ -156,6 +156,60 @@ const generateOtp = () => {
   };
 };
 
+const shouldUseSecureCookie = (req) => {
+  return (
+    process.env.NODE_ENV === "production" ||
+    req.secure ||
+    req.headers["x-forwarded-proto"] === "https"
+  );
+};
+
+const getAuthCookieOptions = (req) => {
+  const secure = shouldUseSecureCookie(req);
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: secure ? "None" : "Lax",
+    maxAge: 24 * 60 * 60 * 1000,
+  };
+};
+
+const allowOtpDebugFallback = () => {
+  const flag = (process.env.ALLOW_OTP_DEBUG_FALLBACK || "").toLowerCase();
+  if (flag === "false") return false;
+  return process.env.NODE_ENV !== "production";
+};
+
+const extractOtpFromText = (text) => {
+  const match = String(text || "").match(/\b(\d{6})\b/);
+  return match?.[1] || null;
+};
+
+const sendOtpMail = async ({ to, subject, text }) => {
+  try {
+    await sendMail({ to, subject, text });
+    return { delivered: true, fallback: false, debugOtp: null };
+  } catch (emailErr) {
+    if (!allowOtpDebugFallback()) {
+      throw emailErr;
+    }
+
+    const debugOtp = extractOtpFromText(text);
+    console.warn("OTP email delivery failed; using debug fallback in non-production mode.", {
+      to,
+      subject,
+      code: emailErr?.code,
+    });
+
+    return {
+      delivered: false,
+      fallback: true,
+      debugOtp,
+      error: emailErr,
+    };
+  }
+};
+
 const handleEmailFailure = (res, error) => {
   const code = error?.code;
   const message = error?.message || "Email delivery failed";
@@ -261,14 +315,18 @@ const resendSignupOTP = async (req, res) => {
     user.otp = otp;
     await user.save();
 
-    try {
-      await sendMail({
-        to: normalizedEmail,
-        subject: "Verify your Event Management Account",
-        text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+    const delivery = await sendOtpMail({
+      to: normalizedEmail,
+      subject: "Verify your Event Management Account",
+      text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+    });
+
+    if (delivery.fallback) {
+      return res.status(200).json({
+        message: "OTP generated locally because email service is unavailable.",
+        debugOtp: delivery.debugOtp,
+        emailDeliveryMode: "dev_fallback",
       });
-    } catch (emailErr) {
-      return handleEmailFailure(res, emailErr);
     }
 
     return res.status(200).json({ message: "OTP re-sent to email. Please verify." });
@@ -311,14 +369,18 @@ const signup = async (req, res) => {
       existingUser.otp = otp;
       await existingUser.save();
 
-      try {
-        await sendMail({
-          to: normalizedEmail,
-          subject: "Verify your Event Management Account",
-          text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+      const delivery = await sendOtpMail({
+        to: normalizedEmail,
+        subject: "Verify your Event Management Account",
+        text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+      });
+
+      if (delivery.fallback) {
+        return res.status(200).json({
+          message: "OTP generated locally because email service is unavailable.",
+          debugOtp: delivery.debugOtp,
+          emailDeliveryMode: "dev_fallback",
         });
-      } catch (emailErr) {
-        return handleEmailFailure(res, emailErr);
       }
 
       return res.status(200).json({ message: "OTP re-sent to email. Please verify." });
@@ -337,14 +399,18 @@ const signup = async (req, res) => {
       otp,
     });
 
-    try {
-      await sendMail({
-        to: normalizedEmail,
-        subject: "Verify your Event Management Account",
-        text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+    const delivery = await sendOtpMail({
+      to: normalizedEmail,
+      subject: "Verify your Event Management Account",
+      text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+    });
+
+    if (delivery.fallback) {
+      return res.status(201).json({
+        message: "OTP generated locally because email service is unavailable.",
+        debugOtp: delivery.debugOtp,
+        emailDeliveryMode: "dev_fallback",
       });
-    } catch (emailErr) {
-      return handleEmailFailure(res, emailErr);
     }
 
     res.status(201).json({ message: "OTP sent to email. Please verify." });
@@ -363,14 +429,18 @@ const signup = async (req, res) => {
           const otp = generateOtp();
           existingUser.otp = otp;
           await existingUser.save();
-          try {
-            await sendMail({
-              to: normalizedEmail,
-              subject: "Verify your Event Management Account",
-              text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+          const delivery = await sendOtpMail({
+            to: normalizedEmail,
+            subject: "Verify your Event Management Account",
+            text: `Your verification OTP is ${otp.value}. Valid for 10 minutes.`,
+          });
+
+          if (delivery.fallback) {
+            return res.status(200).json({
+              message: "OTP generated locally because email service is unavailable.",
+              debugOtp: delivery.debugOtp,
+              emailDeliveryMode: "dev_fallback",
             });
-          } catch (emailErr) {
-            return handleEmailFailure(res, emailErr);
           }
           return res.status(200).json({ message: "OTP re-sent to email. Please verify." });
         }
@@ -472,15 +542,8 @@ const login = async (req, res) => {
       { expiresIn: "1d" },
     );
 
-    const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
-
     // Set Cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true, // Required for sameSite: "None"
-      sameSite: "None", // Required for cross-domain cookies
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", token, getAuthCookieOptions(req));
 
     res.status(200).json({
       message: "Login successful",
@@ -494,8 +557,8 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    sameSite: "None",
-    secure: true,
+    sameSite: shouldUseSecureCookie(req) ? "None" : "Lax",
+    secure: shouldUseSecureCookie(req),
   });
   res.status(200).json({ message: "Logged out" });
 };
@@ -538,17 +601,25 @@ const forgotPassword = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const otpValue = Math.floor(100000 + Math.random() * 900000);
-    user.otp = { value: otpValue, expire: Date.now() + 10 * 60 * 1000 };
+    user.otp = {
+      value: otpValue,
+      expire: Date.now() + 10 * 60 * 1000,
+      cooldown: Date.now() + 30 * 1000,
+    };
     await user.save();
 
-    try {
-      await sendMail({
-        to: normalizedEmail,
-        subject: "Password Reset OTP",
-        text: `Your reset OTP is ${otpValue}`,
+    const delivery = await sendOtpMail({
+      to: normalizedEmail,
+      subject: "Password Reset OTP",
+      text: `Your reset OTP is ${otpValue}`,
+    });
+
+    if (delivery.fallback) {
+      return res.status(200).json({
+        message: "Reset OTP generated locally because email service is unavailable.",
+        debugOtp: delivery.debugOtp,
+        emailDeliveryMode: "dev_fallback",
       });
-    } catch (emailErr) {
-      return handleEmailFailure(res, emailErr);
     }
 
     res.status(200).json({ message: "Reset OTP sent to email" });
@@ -580,6 +651,8 @@ const verifyResetOTP = async (req, res) => {
       return res.status(400).json({ message: "OTP has expired. Please request a new one." });
     }
 
+    user.otp.cooldown = null;
+
     res.status(200).json({
       success: true,
       message: "OTP verified successfully."
@@ -606,6 +679,8 @@ const resetPassword = async (req, res) => {
 
     user.password = await bcrypt.hash(newPassword, 10);
     user.otp.value = null;
+    user.otp.expire = null;
+    user.otp.cooldown = null;
     await user.save();
 
     res.status(200).json({ message: "Password updated successfully" });
@@ -641,4 +716,3 @@ module.exports = {
   resetPassword,
   uploadFile,
 };
-

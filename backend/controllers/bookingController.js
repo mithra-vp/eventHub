@@ -43,6 +43,19 @@ const fetchRazorpayPayment = async (paymentId, authHeader) => {
   return { ok: paymentResp.ok, status: paymentResp.status, data: paymentJson };
 };
 
+const removeAttendeeFromEvent = async (eventRef, userId) => {
+  if (!eventRef || !userId) return;
+
+  const eventId = eventRef?._id || eventRef;
+  const event = await EventModel.findById(eventId);
+  if (!event) return;
+
+  event.attendees = (event.attendees || []).filter(
+    (id) => id.toString() !== userId.toString(),
+  );
+  await event.save();
+};
+
 const createOrder = async (req, res) => {
   try {
     if (typeof fetch !== "function") {
@@ -190,7 +203,15 @@ const cancelAndRefund = async (req, res) => {
     const isAdmin = req.user.role === "admin";
     if (!isOwner && !isAdmin) return res.status(403).json({ message: "Not allowed" });
 
+    if (booking.status === "cancelled") {
+      return res.status(409).json({
+        message: "Booking already cancelled",
+        currentStatus: booking.status,
+      });
+    }
+
     if (booking.status === "refunded") {
+      await removeAttendeeFromEvent(booking.event, booking.user);
       return res.status(409).json({
         message: "Booking already refunded",
         currentStatus: booking.status,
@@ -200,12 +221,13 @@ const cancelAndRefund = async (req, res) => {
     if (booking.status === "created") {
       booking.status = "cancelled";
       await booking.save();
+      await removeAttendeeFromEvent(booking.event, booking.user);
       await writeActivityLog({
         userId: req.user._id,
         eventId: booking.event?._id || booking.event,
         bookingId: booking._id,
         type: "booking_cancelled",
-        message: `${req.user.name} cancelled the event booking.`,
+        message: `${req.user.name || "A user"} cancelled the event booking.`,
         meta: {
           bookingStatus: "cancelled",
           refundGranted: false,
@@ -214,7 +236,7 @@ const cancelAndRefund = async (req, res) => {
       return res.status(200).json({ success: true, message: "Booking cancelled" });
     }
 
-    if (booking.status !== "paid") {
+    if (booking.status !== "paid" && booking.status !== "refund_failed") {
       return res.status(400).json({
         message: "Only created/paid bookings can be cancelled",
         currentStatus: booking.status,
@@ -244,6 +266,7 @@ const cancelAndRefund = async (req, res) => {
         message: "Unable to verify payment before refund",
         status: paymentLookup.status,
         details: paymentLookup.data,
+        currentStatus: booking.status,
       });
     }
 
@@ -256,6 +279,7 @@ const cancelAndRefund = async (req, res) => {
       booking.refundStatus = "processed";
       booking.refundedAt = booking.refundedAt || new Date();
       await booking.save();
+      await removeAttendeeFromEvent(booking.event, booking.user);
       return res.status(409).json({
         message: "Payment was already refunded in Razorpay",
         currentStatus: booking.status,
@@ -306,6 +330,7 @@ const cancelAndRefund = async (req, res) => {
         message: razorpayReason ? `Razorpay refund failed: ${razorpayReason}` : "Razorpay refund failed",
         status: refundResp.status,
         details: refundJson,
+        currentStatus: booking.status,
       });
     }
 
@@ -315,22 +340,14 @@ const cancelAndRefund = async (req, res) => {
     booking.refundedAt = new Date();
     await booking.save();
 
-    if (booking.event) {
-      const event = await EventModel.findById(booking.event._id);
-      if (event) {
-        event.attendees = (event.attendees || []).filter(
-          (id) => id.toString() !== booking.user.toString(),
-        );
-        await event.save();
-      }
-    }
+    await removeAttendeeFromEvent(booking.event, booking.user);
 
     await writeActivityLog({
       userId: req.user._id,
       eventId: booking.event?._id || booking.event,
       bookingId: booking._id,
       type: "refund_granted",
-      message: `${req.user.name} cancelled the event and refund granted.`,
+      message: `${req.user.name || "A user"} cancelled the event and refund granted.`,
       meta: {
         bookingStatus: booking.status,
         refundId: booking.refundId,

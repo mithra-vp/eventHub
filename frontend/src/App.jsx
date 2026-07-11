@@ -25,14 +25,14 @@ function App() {
   const location = useLocation();
   const background = location.state && location.state.backgroundLocation;
 
-  const hideFooter =
+  const hideNavbar =
     location.pathname.startsWith("/dashboard") ||
     location.pathname.startsWith("/create-event") ||
     location.pathname.startsWith("/edit");
 
   return (
     <>
-      <Navbar />
+      {!hideNavbar && <Navbar />}
       <ToastContainer position="top-right" autoClose={2200} newestOnTop closeOnClick pauseOnHover />
 
       <Routes location={background || location}>
@@ -103,7 +103,7 @@ function App() {
         </Routes>
       )}
 
-      {!hideFooter ? <Footer /> : null}
+      {!hideNavbar ? <Footer /> : null}
     </>
   );
 }

@@ -58,11 +58,17 @@ const Signup = ({ isModal = false }) => {
             const payload = { ...formData, email: normalizedEmail };
             const res = await api.post('/auth/signup', payload);
             toast.success(res.data.message || "OTP sent to your email!");
+            if (res.data?.debugOtp) {
+                sessionStorage.setItem("pendingSignupOtp", String(res.data.debugOtp));
+                toast.info(`Development OTP: ${res.data.debugOtp}`);
+            }
             sessionStorage.setItem("pendingSignupEmail", normalizedEmail);
             
             setTimeout(() => {
                 const email = encodeURIComponent(normalizedEmail);
-                navigate(`/verify-otp?email=${email}`);
+                navigate(`/verify-otp?email=${email}`, {
+                    state: { debugOtp: res.data?.debugOtp || "" },
+                });
             }, 800);
         } catch (err) {
             const status = err.response?.status;

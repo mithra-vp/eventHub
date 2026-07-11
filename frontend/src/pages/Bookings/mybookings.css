@@ -177,6 +177,11 @@
   border-color: rgba(239, 68, 68, 0.35);
 }
 
+.mb-status.refund_failed {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
 .mb-review {
   margin-top: 12px;
   padding-top: 12px;

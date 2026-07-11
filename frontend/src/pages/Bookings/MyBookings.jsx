@@ -115,27 +115,30 @@ const MyBookings = () => {
     });
   }, []);
 
-  const canCancel = (b) => ["paid", "created"].includes(b.status?.toLowerCase());
+  const canCancel = (b) => ["paid", "created", "refund_failed"].includes(b.status?.toLowerCase());
 
-  const cancelLabel = (b) => (b.status?.toLowerCase() === "paid" ? "Cancel & Refund" : "Cancel Booking");
+  const cancelLabel = (b) =>
+    ["paid", "refund_failed"].includes(b.status?.toLowerCase()) ? "Cancel & Refund" : "Cancel Booking";
 
   const cancelHint = (b) =>
-    b.status?.toLowerCase() === "paid"
+    ["paid", "refund_failed"].includes(b.status?.toLowerCase())
       ? "Refund is processed by Razorpay and may take some time."
       : "Cancels a pending booking (no payment).";
 
   const cancelConfirmText = (b) =>
-    b.status?.toLowerCase() === "paid"
+    ["paid", "refund_failed"].includes(b.status?.toLowerCase())
       ? "Cancel this booking and request a full refund?"
       : "Cancel this booking?";
 
   const cancelSuccessText = (b) =>
-    b.status?.toLowerCase() === "paid"
+    ["paid", "refund_failed"].includes(b.status?.toLowerCase())
       ? "Booking cancelled."
       : "Cancelled.";
 
   const cancelDisabledReason = (b) => {
-    if (!["paid", "created"].includes(b.status?.toLowerCase())) return "Only created/paid bookings can be cancelled";
+    if (!["paid", "created", "refund_failed"].includes(b.status?.toLowerCase())) {
+      return "Only created/paid/refund-failed bookings can be cancelled";
+    }
     return null;
   };
 
